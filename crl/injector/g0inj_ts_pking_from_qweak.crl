@@ -1,0 +1,578 @@
+#  Rewrote this based on David Abbot's "vme_list2.crl"
+#  in the CODA 2.5 examples directory.
+#	P. King; 2005 dec 21.
+#
+#  Migration to CODA 2.6.1 on cdaql4
+#  Wednesday, June  1 15:53:29 EDT 2011, jhlee
+#
+#
+#  CODA Readout List for Injector Parity DAQ
+#   
+readout list G0INJ_TS
+#maximum output in bytes, number of events 
+#maximum 10000,5000
+maximum 8000,5000
+#
+# 38MB is 30% of total memory 128MB for MVME6100
+#
+vme readout
+ts control
+
+const TIR_ADDR             = hex 0ed0
+const REALLY_READOUT_BEAM_SCALERS = 1
+const REALLY_READOUT_VQWK         = 1
+const FORCE_SOFTWARE_HMINUS       = 0
+variable READOUT_BEAM_SCALERS
+variable READOUT_VQWK
+
+variable firstEvents
+
+#  Define the sub-bank types.
+const SCAL_BTYPE     = 0x3101
+const VQWK_BTYPE     = 0x3102
+const HEL_BTYPE      = 0x3103
+const VQWKERR_BTYPE  = 0x3112
+
+#  Set up stuff for the TIR output port
+const OPORT_BUSY     = 0x80   /* bit 8 = busy output */
+const OPORT_GATESOFF = 0x40   /* bit 7 = disable the VQWK ADC gates */
+const OPORT_VQWKREAD = 0x20   /* bit 6 = reading VQWK ADCs */
+const OPORT_VQWKWAIT = 0x10   /* bit 5 = wait for data in VQWK ADCs */
+
+include "tir_oport_utils.c"
+
+include "g0inj.h"
+
+int VQWK_DATA_READY_TIME = 20;
+
+
+# Define tsP pointer even if there is no TS in the Crate
+struct vme_ts2 *tsP;
+
+unsigned long laddr;
+extern int bigendian_out;
+
+
+static int buffered;
+int id = 0;
+
+int verbose_vqwk_errors = 0;
+
+UINT32 addr_beam     = 0x38d000;
+UINT32 addrinc_beam  = 0x724000;
+UINT32 nscalers_beam = 1;
+
+UINT32 addr_vqwk;
+UINT32 addrinc_vqwk = 0x10000;
+UINT32 nvqwk;
+
+UINT32 addr_misc     = 0xC00000;
+UINT32 addrinc_misc  = 0x0;
+UINT32 nscalers_misc = 1;
+UINT32 channel_mask_misc = 0x0001030f; /*  Turn on channels 0-3, 8-9, 16.  */
+
+int creg = 0;
+unsigned long imask = 0x0;
+unsigned long rmask = 0xffffffff;
+int latch =0;
+extern int bigendian_out;
+
+
+
+int local_mps_counter;
+int local_qrt_counter;
+int lastqrt_mps_counter;
+
+
+begin download
+  variable res
+
+  # If the ROC is sending data to Little-Endian EB
+  # e.g. a x86 Linux CPU then bigendian_out = 0.
+  # Unless the ROC is also running on a Little-Endian
+  # machine. Then set bigendian_out=1.
+  bigendian_out = 0;
+
+  # Setup TIR
+  tirInit(TIR_ADDR);
+
+
+
+#  log inform "Reading flags from file"
+#  init_strings();
+
+  log inform "Users Download Executed"
+   
+end download
+    
+
+begin prestart
+
+  log inform "Entering User Prestart"
+
+  log inform "Reading flags from file"
+  init_strings();
+
+  init trig source VME
+  link async trig source VME 1 to vmetrig and vmetrig_done
+  event type 1 then read VME 1
+
+# Setup the JLab FlexIO module.
+  log inform "Begin setting up the JLab FlexIO module."
+%%
+  flexioInit(0x0ee0);         /* PORT 1 IS OUTPUT, PORT 2 IS INPUT */
+  flexioEnableInputLatch(2);  /* Set port 2 to use the input latch. */
+  flexioPrintStatus();
+%%
+
+
+  # Setup the beam scalers.
+%%
+  nscalers_beam = 0;
+  nscalers_beam = getint(NUM_SCALERS);
+  if (nscalers_beam==0){
+    READOUT_BEAM_SCALERS = 0;
+  } else {
+    READOUT_BEAM_SCALERS = REALLY_READOUT_BEAM_SCALERS;
+  }
+%%
+
+  if READOUT_BEAM_SCALERS is equal to 1 then
+    log inform "Begin setting up the beam scalers."
+%%
+    if (addr_beam == 0) {
+       daLogMsg("ERROR","INVALID Base Address");
+    } else {
+       daLogMsg("INFO","Initializing %d scalers starting at addr_beam 0x%.8x",nscalers_beam,addr_beam);
+       sis3801InitializeMany(addr_beam, addrinc_beam , nscalers_beam);
+    }
+%%
+    log inform "Beam scalers initialized and cleared"
+  end if
+
+###  Setup the VQWK modules
+%%
+  nvqwk = 0;
+  nvqwk = getint(NUM_ADCS);
+  if (nvqwk==0){
+    READOUT_VQWK = 0;
+  } else {
+    READOUT_VQWK = REALLY_READOUT_VQWK;
+  }
+%%
+
+  if READOUT_VQWK is equal to 1 then
+    log inform "Begin setting up the VQWK modules."
+    addr_vqwk = (getint(BASE_ADC)<<16);
+    nvqwk     = getint(NUM_ADCS);
+
+    daLogMsg("INFO","Set up %d ADCs beginning with ladd 0x%.8x with address steps of 0x%.8x",nvqwk,addr_vqwk, addrinc_vqwk);
+
+%%
+    if (getflag(VQWK_VERBOSE_MODE)==2){
+       vqwkSetVerboseLevel(getint(VQWK_VERBOSE_MODE));
+    }
+
+    if (getflag(VQWK_SAMPLE_PERIOD)==2)
+       vqwkSetDefaultSamplePeriod(getint(VQWK_SAMPLE_PERIOD));
+    if (getflag(VQWK_NUM_BLOCKS)==2)
+       vqwkSetDefaultNumberOfBlocks(getint(VQWK_NUM_BLOCKS));
+    if (getflag(VQWK_SAMP_PER_BLOCK)==2)
+       vqwkSetDefaultSamplesPerBlock(getint(VQWK_SAMP_PER_BLOCK));
+    if (getflag(VQWK_GATE_DELAY)==2)
+       vqwkSetDefaultGateDelay(getint(VQWK_GATE_DELAY));
+    if (getflag(VQWK_INT_GATE_FREQ)==2)
+       vqwkSetDefaultIntGateFreq(getint(VQWK_INT_GATE_FREQ));
+    if (getflag(VQWK_INTERNAL_MODE)==2){
+       int gateclkmode = getint(VQWK_INTERNAL_MODE);
+       vqwkSetDefaultGateClockSources((gateclkmode & 2),
+                                      (gateclkmode & 1));
+    }
+
+    vqwkInit(addr_vqwk, addrinc_vqwk, nvqwk);
+
+
+
+    rol->dabufp = (long *)0;
+    UEOPEN(ROCCONFIG_EVENT(rol->pid),BT_UI4,0);
+    if(rol->dabufp) {
+      int id=0;
+      while (id < nvqwk) {
+        rol->dabufp += vqwkDumpStatus(id, rol->dabufp);
+        id++;
+      }
+    } else {
+      daLogMsg("WARN","No buffer, ROC configuration event not written");
+    }
+    UECLOSE;
+%%
+    log inform "VQWK ADCs initialized"
+  end if
+
+# Setup the miscelaneous scalers.
+  log inform "Begin setting up the miscelaneous scalers."
+%%
+  if (addr_misc == 0) {
+       daLogMsg("ERROR","INVALID Base Address");
+  } else {
+       daLogMsg("INFO","Initializing %d scalers starting at addr_misc 0x%.8x",nscalers_misc,addr_misc);
+       initSTR7200(addr_misc, addrinc_misc , nscalers_misc);
+       ClrSTR7200();
+  }
+%%
+  log inform "Miscelaneous scalers initialized and cleared"
+
+  local_mps_counter   = 0;
+  local_qrt_counter   = 0;
+  lastqrt_mps_counter = 0;
+
+
+
+  if READOUT_VQWK is equal to 1 then
+  log inform "Send a disable signal to the VQWK ADC gates during prestart"
+%%
+  /* Disable the ADC gates by setting a veto signal */
+  firstEvents = 2;
+  set_tir_oport(OPORT_GATESOFF);
+%%
+
+  log inform "Clear the ADCs during prestart"
+
+%%
+  /*  Configure the internal or external gating and clock modes,  *
+   *  then clear the ADCs.                                        */
+  int id=0;
+  if (getflag(VQWK_INTERNAL_MODE)==2){
+    int gateclkmode = getint(VQWK_INTERNAL_MODE);
+    int gateflag = (gateclkmode & 2);
+    int clkflag  = (gateclkmode & 1);
+    daLogMsg("INFO","Setting gateflag to %d and clockflag to %d.",
+        gateflag, clkflag);
+    while (id < nvqwk){
+      vqwkSetGateClockSources(id,gateflag,clkflag);
+      id++;
+    }
+  }
+  id=0;
+  while (id < nvqwk){
+    vqwkClearAllChannels(id);
+    id++;
+  }
+%%
+  end if
+
+
+  log inform "Prestart Executed"
+
+end prestart
+
+begin end
+
+  #Disables the trigger
+  CDODISABLE(VME,1,0);
+
+  log inform "Sending disable to scalers during end"
+#  Disable the beam scalers.
+%%
+  sis3801DisableMany();
+%%
+#  Disable the misc scalers.
+%%
+  id = 0;
+  while (id < nscalers_misc){
+    disableSTR7200(id);
+    id++;
+  }
+%%
+ 
+  log inform "End Executed"
+
+end end
+
+begin pause
+
+  CDODISABLE(VME,1,0);
+  log inform "Pause Executed"
+
+end pause
+
+begin go
+
+  log inform "Entering Go"
+ 
+ log inform "Sending enable to the scalers during go"
+#  Enable the beam scalers.
+%%
+  sis3801EnableMany();
+%%
+#  Enable the misc scalers.
+%%
+  id = 0;
+  while (id < nscalers_misc){
+    countDisableSTR7200(id,~(channel_mask_misc));
+    daLogMsg("INFO", "Sending a disable to the STR7200 mask pattern 0x%.8x",
+             ~(channel_mask_misc));
+    enableSTR7200(id);
+    id++;
+  }
+%%
+
+
+  CDOENABLE(VME,1,0); /* Enable Interrupts from TS */ 
+
+end go
+
+begin trigger vmetrig
+
+  variable event_ty, event_no, sync_or_unbuffered_event
+  variable do_beam_readout
+  variable i, value, ichan
+
+  UINT32 index,  header, real_num_of_words, num_of_words;
+  UINT32 input_reg, old_out_reg, output_reg, tmp_reg, old_reg;
+
+  UINT32 eventscalers[32];  /*  Local copy of STR7200 data */
+
+  int timeout, tirdata, happexbit;
+  int clearall;
+  int id = 0;
+
+  UINT32 qwk_warnings[3];
+
+  int    timer[21];
+
+  num_of_words=32;
+
+  set_tir_oport(OPORT_BUSY);
+
+%%
+  id=0;
+  while (id < 3){
+    qwk_warnings[id++] = 0;
+  }
+  id=0;
+  clearall = 0;
+  if (firstEvents==0){
+    unset_tir_oport(OPORT_GATESOFF);
+  } else if (firstEvents>1){
+    firstEvents--;
+  } else if (firstEvents==1){
+    if (verbose_vqwk_errors==1){
+      daLogMsgI("INFO","Reenabling ADC gates at beginning of event %d.",
+                  event_no);
+    }
+    qwk_warnings[0] = '  ON';
+    unset_tir_oport(OPORT_GATESOFF);
+    firstEvents = 0;
+  }
+  if (clearall == 1){
+    id=0;
+    if (verbose_vqwk_errors==1){
+      daLogMsgI("WARN","Ev#%d: Clearing all!", event_no);
+    }
+    qwk_warnings[2] = 1;
+    set_tir_oport(OPORT_GATESOFF);
+    while (id < nvqwk) {
+      vqwkClearAllChannels(id);
+      id++;
+    }
+    clearall = 0;
+  }
+%%
+
+  event_ty = EVTYPE;
+  event_no = *rol->nevents;
+#  logMsg("EVTYPE=%d\n",EVTYPE); 
+
+
+%%
+  /* PORT 1 IS OUTPUT, PORT 2 IS INPUT */
+  input_reg  = flexioReadData(2);
+  output_reg = flexioReadData(1);
+  if (FORCE_SOFTWARE_HMINUS == 1) {
+    /* Force the second bit of the input register to be the   *
+     * inverse of the first bit.                              */
+    old_reg = input_reg;
+    input_reg = (old_reg & (~ 0x2)) | (( (~(old_reg & 0x1))<<1) & 0x2);
+  }
+
+  /*  Read the miscelaneous counter into a local data array *
+   *  with 32 entries.                                      */
+  id = 0;
+  while (id < nscalers_misc){
+    real_num_of_words = ReadSTR7200(id,&eventscalers);
+    id++;
+  }
+
+%%
+
+  rol->dabufp = (long *)0;
+
+  open event type EVTYPE of BT_BANK
+    if event_ty is equal to 1 then
+    if READOUT_BEAM_SCALERS is equal to 1 then
+      open bank SCAL_BTYPE of BT_UI4
+%%
+        /* Put the three scan words here, then the beam scalers. */
+        *rol->dabufp++ = getCleanSCAN();
+        *rol->dabufp++ = getDataSCAN(1);  
+        *rol->dabufp++ = getDataSCAN(2);  
+        *rol->dabufp++ = 0;
+
+        /*  Output the values of the beam scalers.              */
+        id=0;
+        index  = 0;
+        header = 0x0;
+        while (id < nscalers_beam)
+        {
+          *(rol->dabufp)++ = header;
+          real_num_of_words = sis3801ReadOneModule(id,num_of_words, rol->dabufp);
+          rol->dabufp--;
+          header = (index<<16) + real_num_of_words;
+          *(rol->dabufp)++ = header;
+          rol->dabufp += real_num_of_words;
+          index += real_num_of_words;
+          id++;
+        }
+          if((unsigned long) (rol->dabufp)&0x7) {
+          //  Add a dummy word to reach an 8 byte boundary for address
+          *(rol->dabufp)++ = 0xf0f0f0f0;
+        }
+%%
+      close bank
+    end if
+
+    if READOUT_VQWK is equal to 1 then
+      open bank VQWK_BTYPE of BT_UI4
+%%
+        id=0;
+        while (id < 21){
+          timer[id++] = 0;
+        }
+        id=0;
+        clearall = 0;
+        set_tir_oport(OPORT_VQWKWAIT);
+        while (id < nvqwk){
+          timer[id] = vqwkWaitForDataReady(id, 0xFF, VQWK_DATA_READY_TIME);
+          if (timer[id]<0 && verbose_vqwk_errors==1) {
+            daLogMsgI("WARN","Ev#%d: VQWK %d timed out with timer=%d.",
+                      event_no, id, timer[id]);
+          }
+          id++;
+        }
+        id=0;
+        unset_tir_oport(OPORT_VQWKWAIT);
+        set_tir_oport(OPORT_VQWKREAD);
+        while (id < nvqwk) {
+	  /* 	  if (vqwkProbeDataReady(id)!=0){ */
+	  if (1==1){
+            rol->dabufp+=vqwkReadRegisters(id, 0xff, rol->dabufp);
+            // rol->dabufp+=vqwkBlockRead(id, rol->dabufp);
+          } else {
+            /*  Let's put in some fake data with debugging info. */
+            *(rol->dabufp)++ = 'FAKE';
+            *(rol->dabufp)++ = event_no;
+            *(rol->dabufp)++ = id;
+            *(rol->dabufp)++ = timer[id];
+            *(rol->dabufp)++ = 0;
+            *(rol->dabufp)++ = 0;
+            /*  Zero-out the next 42 (7*6) channels. */
+            for (ichan=0; ichan<42; ichan++){
+              *(rol->dabufp)++ = 0;
+            }
+          }
+          if (vqwkProbeDataReady(id)!=0){
+            if (verbose_vqwk_errors==1){
+              daLogMsgI("WARN","Ev#%d: VQWK %d has extra data.  Clear all!",
+                        event_no, id);
+            }
+            qwk_warnings[1] += (1<<id);
+            clearall = 1;
+          }
+          id++;
+        }
+        if (clearall == 1){
+          id=0;
+          if (verbose_vqwk_errors==1){
+            daLogMsgI("WARN","Ev#%d: Clearing all!", event_no);
+          }
+          qwk_warnings[2] = 1;
+	  firstEvents = 2;
+          set_tir_oport(OPORT_GATESOFF);
+          while (id < nvqwk) {
+            vqwkClearAllChannels(id);
+            id++;
+          }
+          clearall = 0;
+        }
+        unset_tir_oport(OPORT_VQWKREAD);
+%%
+      close bank
+
+      open bank VQWKERR_BTYPE of BT_UI4
+%%
+        int id = 0;
+        *rol->dabufp++ = 'WARN';
+        *rol->dabufp++ = qwk_warnings[0];
+        *rol->dabufp++ = qwk_warnings[1];
+        *rol->dabufp++ = qwk_warnings[2];
+        rol->dabufp += 4;
+        *rol->dabufp++ = 'TIME';
+        while (id < 21) {
+          *rol->dabufp++ = timer[id];
+          id++;
+        }
+        rol->dabufp += 2;
+%%
+      close bank
+    end if
+    end if
+
+    open bank HEL_BTYPE of BT_UI4
+%%
+      int id=0;
+      UINT32 qrtbit = (input_reg & 0x4);
+
+      *(rol->dabufp)++ = input_reg;
+      *(rol->dabufp)++ = output_reg;
+      *(rol->dabufp)++ = eventscalers[0];  /* MPS counter          */
+      *(rol->dabufp)++ = eventscalers[1];  /* QRT counter          */
+      *(rol->dabufp)++ = eventscalers[8];  /* # MPS per quartet    */
+      *(rol->dabufp)++ = eventscalers[16]; /* # ADC gate per MPS   */
+      *(rol->dabufp)++ = eventscalers[2];  /* ADC gate counter     */
+      *(rol->dabufp)++ = 0;
+
+      /* Put the three scan words here. */
+      *rol->dabufp++ = getCleanSCAN();
+      *rol->dabufp++ = getDataSCAN(1);
+      *rol->dabufp++ = getDataSCAN(2);
+      *rol->dabufp++ = 0;
+
+      *rol->dabufp++ = ' ADC';
+      id=0;
+      while (id < nvqwk) {
+        *rol->dabufp++ = timer[id];
+        id++;
+      }
+%%
+    close bank
+
+  close event
+
+end trigger
+
+begin done vmetrig
+ 
+  unset_tir_oport(OPORT_BUSY);
+# logMsg("Done vmetrig Complete \n");
+end done
+
+begin done
+
+# Acknowledge tir register
+  CDOACK(VME,1,0);
+
+end done
+
+begin status
+end status

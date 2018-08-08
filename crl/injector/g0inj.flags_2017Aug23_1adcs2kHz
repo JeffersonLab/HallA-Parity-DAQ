@@ -1,0 +1,58 @@
+;
+;  This file is used to configure the VQWK ADC with different
+;  running conditions at prestart.
+;
+;  vqwkinternal=3  means use external gate and external clock
+;  vqwkinternal=2  means use external gate and internal clock
+;  vqwkinternal=0  means use internal gate and internal clock
+;;
+;  vqwk_verbose=0  will disable all non-error messages from the VQWK modules
+;  vqwk_verbose=1  will show minimal messages from the VQWK modules (DEFAULT)
+;  vqwk_verbose=2  will show all messages from the VQWK modules
+;;
+;  nscal=0 will temporarily disable the scalers; no other values
+;  will have an effect.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;
+;
+;
+; Here is how the number of sample should be determined.
+; Du : duration of the mps
+; du: duration of a sample = 2 micro second
+;
+; (vqwksamples*4+vqwkdelay)*du=DU
+;
+;
+;  Config line for 30 Hz running: T_stable > 33.328 msec
+;badc=0x80,nadc=12,nscaler=1,vqwkperiod=0,vqwkblocks=4,vqwksamples=4161,vqwkdelay=20,vqwkinternal=2
+;
+;  Config line for 30 Hz running: T_stable ~ 33.2 msec
+;badc=0x80,nadc=12,nscaler=1,vqwkperiod=0,vqwkblocks=4,vqwksamples=4130,vqwkdelay=20,vqwkinternal=2
+;
+;  Config line for 120 Hz running: T_stable > 8.040 msec
+;badc=0x80,nadc=12,nscaler=1,vqwkperiod=0,vqwkblocks=4,vqwksamples=1000,vqwkdelay=20,vqwkinternal=2
+;
+;  Config line for 240 Hz running: T_stable > 3.920 msec
+;badc=0x80,nadc=12,nscaler=1,vqwkperiod=0,vqwkblocks=4,vqwksamples=485,vqwkdelay=20,vqwkinternal=2
+;
+;  Config line for 960 Hz running as used in main QWEAK DAQ
+;crateheader=3,badc=0x80,nadc=12,nscaler=1,vqwksamples=116,vqwkdelay=20,vqwkblocks=4,vqwkperiod=0,vqwkinternal=2
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;  Config line for 960 Hz running: T_stable > 0.920 msec
+;badc=0x80,nadc=12,nscaler=1,vqwkperiod=0,vqwkblocks=4,vqwksamples=110,vqwkdelay=40,vqwkinternal=2
+;
+;     Try 4156 samples per block for 1 sample.
+;     Try 2000 samples per block for 2 sample.
+;     Try 1000 samples per block for 4 sample.
+;     Try 400 samples per block for 10 samples.
+;badc=0x80,nadc=12,nscaler=1,vqwkperiod=0,vqwkblocks=4,vqwksamples=4156,vqwkdelay=20,vqwkinternal=2
+;badc=0x80,nadc=12,nscaler=1,vqwkperiod=0,vqwkblocks=4,vqwksamples=2000,vqwkdelay=20,vqwkinternal=2
+;badc=0x80,nadc=12,nscaler=1,vqwkperiod=0,vqwkblocks=4,vqwksamples=1000,vqwkdelay=20,vqwkinternal=2
+;badc=0x80,nadc=12,nscaler=1,vqwkperiod=0,vqwkblocks=4,vqwksamples=400,vqwkdelay=20,vqwkinternal=2
+;
+;  THE LINES BELOW ARE AUTOMATICALLY GENERATED!  DO NOT EDIT (but you may comment them out)!!!
+;crateheader=3,badc=0x80,nadc=10,vqwksamples=116,vqwkdelay=20,vqwkblocks=4,vqwkperiod=0,vqwkinternal=2,nscaler=1
+crateheader=3,badc=0x80,nadc=1,vqwksamples=45,vqwkdelay=10,vqwkblocks=4,vqwkperiod=0,vqwkinternal=2,nscaler=1

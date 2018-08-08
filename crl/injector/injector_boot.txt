@@ -1,0 +1,14 @@
+boot device          : geisc0    
+processor number     : 0             
+host name            : adaq2    
+file name            : /adaqfs/home/apar/vxworks/vx6100_v4.1big      
+inet on ethernet (e) : 129.57.164.61:ffffff00                                                                                                   
+inet on backplane (b):        
+host inet (h)        : 129.57.192.103    
+gateway inet (g)     : 129.57.164.1      
+user (u)             : adev           
+ftp password (pw) (blank = use rsh):       
+flags (f)            : 0x20                     
+target name (tn)     : qweak1       
+startup script (s)   : /adaqfs/home/apar/vxworks/qweak1_par1_adaq3.boot       
+other (o)            :                                                        
