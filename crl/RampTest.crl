@@ -1,0 +1,1452 @@
+#  -*- c -*-
+# 
+# CODA Readout list for HAPPEX-H/He
+#
+#    Bob Michaels, Antonin Vacheret  (Oct 2000)
+#    Kent Paschke, Bryan Moffit (2000 - 2008)
+#    R. Michaels, L. Mercado,  R. Silwal (2009-2010)
+# 
+#  Modifications Oct 2009   R. Michaels
+#  All for 18-bit ADC
+#      1. Hard reset of ADC in prestart (initall or reset)
+#      2. adc18_stop in "end".  Very important.
+#      3. In trigger routine partrig
+#         (i) First event does "soft_reset" and "go"
+#        (ii) If data available, flag event but do NOT flush buffer.
+#############
+#
+# Modifications to add VQWK integration ADCs (Qweak) Rakitha Beminiwattha Thu Feb 12 14:29:32 EST 2015d Tue Aug 18 16:42:15 EDT 2015                    
+#
+#############  
+  
+readout list VME1
+maximum 8192,20000
+vme readout
+ts control
+
+variable READOUT_VQWK
+variable firstEvents
+
+/* VQWK ADC parameters */
+const  VQWK_SAMPLE_PERIOD   =   0
+
+const VQWK_NUM_BLOCKS   =   4
+/* To change the helicity frequency */
+/* 30 Hz  ...... 4012  */
+/* 114.5 Hz .... 1000 */
+/* 240 Hz  .... 485 */
+/* 240Hz ....445?  */
+/* 480 Hz ......243*/
+/* 960 Hz ..... 110 */
+const VQWK_SAMP_PER_BLOCK = 4141
+const VQWK_GATE_DELAY = 10
+
+const  VQWK_INT_GATE_FREQ = 0
+const  BASE_ROCCONFIG_EVENT = 0x90
+/* VQWK modes */
+/* VQWK_INTERNAL_MODE = 3 external gate and external clock */
+/* VQWK_INTERNAL_MODE = 2 external gate and internal clock */
+/* VQWK_INTERNAL_MODE = 0 internal gate and internal clock */
+
+const  VQWK_INTERNAL_MODE = 2
+
+#  Set up stuff for the TIR output port
+const OPORT_BUSY     = 0x80   /* bit 8 = busy output */
+const OPORT_GATESOFF = 0x40   /* bit 7 = disable the VQWK ADC gates */
+const OPORT_VQWKREAD = 0x20   /* bit 6 = reading VQWK ADCs */
+const OPORT_VQWKWAIT = 0x10   /* bit 5 = wait for data in VQWK ADCs */
+const OPORT_LNE      = 0x04   /* bit 3 = LNE for scaler FIFO */
+const OPORT_SCALER = 0x02 /*bit 2 = scaler reading, Caryn add*/
+const OPORT_HAPADC   = 0x01   /* bit 1 = HAPPEX ADC readout */
+
+#  Define the sub-bank types.
+const VQWK_BTYPE     = 0x0902
+const OTHER_BTYPE      = 0x0905
+const VQWK_HEADER   = 0xff902902
+
+/* All the memory maps of VME modules are defined in module_map.h  */
+include "../module_map.h"
+/* User strings to control some readout */
+include "usrstrutils.c"
+include "tir_oport_utils.c"
+include "/adaqfs/home/apar/scaler/SISnohel/SIS.h"
+
+# default timing board DAC values
+#const  DEF_DAC12   =    4000    /* note, 0 is output voltage = 0 */
+#const  DEF_DAC16   =    32767   /* output voltage = 0 */
+const DEF_DAC12 = 400    /* Set the output voltage to get about 3.3 KHz out of V2f */
+#change DAC value from 26500 to 17080 - LRM 2/17/10
+const DEF_DAC16 = 17080 /* Set the starting voltage to get about 7.0 KHz out of V2f */
+const  MIN_DAC12   = 500
+const  MAX_DAC12   = 8500    /* max DAC12 was 100 */ 
+const  STEP_DAC12  = 16  /* 4 */
+const  MIN_DAC16   = 100
+const  MAX_DAC16   = 64100
+const  MID_DAC16   = 32100
+const  MID_NegValDAC16 = 16100
+const  MID_PosValDAC16 = 48100
+const  STEP_DAC16  = 64
+int numberSteps12  = 0
+int numberSteps16  = 0
+int totalSteps12   = 0
+int totalSteps16   = 0
+int gainStep       = 0
+const  V_MODE      =  0 /* OLD */
+# all other timing parameters are set in separate utilities
+
+# Number of random array elements
+# 2e6 good for 2 hours (at 30Hz) for 9 ADCs.
+const RANDNUM = 2000000
+
+# Number of scalers (set to two, might be one... still okay)
+const NSCALER = 2
+# Switch all this, depending on which kind of scaler 
+# Must be consistent with preprocessor switch below (TYPE_SIS3800, etc)
+const SCALER0 = hex a40000
+const SCALER1 = hex a50000
+
+# if LINUXHOST=1(0) host is linux(not)
+const LINUXHOST = 1
+const TRIG_ADDR = hex 0ad0
+const FLEXIO_ADDR = hex 0ed0
+
+const FIFO_EMPTY = hex 100
+ 
+
+  /* 18-Bit ADC Parameters*/ 
+
+const MAXNUMADC18 = 25
+const MAX18CNT = 100
+const INTERNAL=0
+const EXTERNAL=1
+const TIME18 = INTERNAL
+const A18_NORM_NWORD = 14
+
+static int BAD18DATA = -999;
+
+static int conv_gain[MAXNUMADC18],int_gain[MAXNUMADC18];
+
+int oport_state=0;   /* output port state (global variable) */
+
+static int noscaler, scaler2, bmwscan, tbreadout, evtypefix, flexio, flexio2;
+static int qweakadc, adc18bit, numadc18, adc16bit, mtread, rampdac12, rampdac16;
+static int autoled, lefthrs, righthrs, counthouse;
+
+unsigned short ranny[RANDNUM];  /* array of random integers */
+
+extern int bigendian_out;
+extern int rocActivate;
+extern struct SISbuffer SIS1;
+
+static FUNCPTR handlerPtr;
+VOIDFUNCPTR isr;
+
+volatile struct vme_flex_io *flex_io;
+
+# Switch here if picking a different kind of scaler
+# Either TYPE_SIS3801, TYPE_SIS3800, TYPE_LEC1151, or TYPE_CAEN560 
+# may be one, not all 1.
+
+
+%% 
+
+#undef TYPE_CAEN560
+#undef TYPE_SIS3800 
+#undef TYPE_LEC1151 
+#define TYPE_SIS3801
+#ifdef TYPE_SIS3801
+volatile struct fifo_scaler *pscaler[NSCALER];
+#define DATA_MASK 0xffffff
+#endif
+#ifdef TYPE_SIS3800
+volatile struct SIS3800 *pscaler[NSCALER];
+#endif
+#ifdef TYPE_LEC1151
+volatile struct lecroy_1151_scaler *pscaler[NSCALER];
+#endif
+#ifdef TYPE_CAEN560
+volatile struct caen_v560_scaler *pscaler[NSCALER];
+#endif
+
+
+%%
+
+# VQWK parameters
+
+
+unsigned int addr_vqwk;
+unsigned int addrinc_vqwk  = 0x010000;
+unsigned int baseaddr_vqwk = 0x840000;
+unsigned int nvqwk = 0;  /* depends on the crate */
+
+
+begin download
+
+  variable iadc
+
+# Sending data to Little-Endian EB
+%%  
+  int i,j,tmode,mode,res;
+  unsigned short temp;
+  unsigned long laddr;
+  extern void srand();
+  extern int rand();
+  int chkcsr, retry;
+  CODA_RUN_IN_PROGRESS = 0;
+
+  if (LINUXHOST) {
+      printf("Assuming EB is on a Little-Endian cpu\n");      
+      bigendian_out = 0;
+  }
+
+init_strings();
+
+noscaler=0;scaler2=0;bmwscan=0;tbreadout=0;evtypefix=0;flexio=0,flexio2=0;
+qweakadc=0; adc18bit=0;adc16bit=0;mtread=0;rampdac12=0;rampdac16=0; autoled=0; 
+lefthrs=0; righthrs=0;
+counthouse=0;
+noscaler  = getflag(NOSCALER);   /* No scaler used for this crate */
+scaler2   = getflag(SCALER2);    /* Use 2 scalers for this crate */
+bmwscan   = getflag(BMWSCAN);    /* Readout Beam Modulation and Scan Words */
+tbreadout = getflag(TBREADOUT);  /* Write Timing Board config to file */
+evtypefix = getflag(EVTYPEFIX);  /* Correct event type for Injector DAQ */
+flexio    = getflag(FLEXIO);     /* Readout Flexible I/O Module */
+flexio2   = getflag(FLEXIO2);    /* Readout Flexible I/O Module */
+qweakadc  = getflag(QWEAKADC);   /* to use Qweak ADCs (1) or not (0) */
+adc18bit  = getflag(ADC18BIT);   /* 18-bit ADC tests  */
+adc16bit  = getflag(ADC16BIT);   /* 16-bit ADC exists(1) or not(0)   */
+mtread    = getflag(MTREAD);     /* Empty readout ?  (1).  For tests */
+rampdac12 = getflag(RAMPDAC12);  /* To ramp the 12-bit DAC */
+rampdac16 = getflag(RAMPDAC16);  /* To ramp the 16-bit DAC */
+autoled   = getflag(AUTOLED);    /* for LED linearity tests in HRS crates */
+lefthrs   = getflag(LEFTHRS);    /*  just so you know you are on the left arm */
+righthrs  = getflag(RIGHTHRS);   /*  just so you know you are on the right arm */
+counthouse = getflag(COUNTHOUSE); /* just so you know you are on the CH crate */
+
+/* Printout User String Configuration */
+printf("*** User String Configuration ***\n");
+if (lefthrs) {
+  printf("This is the LEFT HRS crate\n");
+} 
+if (righthrs) {
+  printf("This is the RIGHT HRS crate\n");
+} 
+if (counthouse) {
+  printf("This is the counting house crate \n");
+}
+if (qweakadc) {
+  printf("Will use the Qweak ADCs \n");
+}
+if (adc18bit) {
+  printf("Will use 18-bit ADC \n");
+} 
+if (adc16bit) {
+  printf("Will use 16-bit ADC \n");
+} 
+if(noscaler == 0) {
+  printf("WILL readout scaler: %d\n",noscaler);
+} else {
+  printf("Will NOT readout scaler: %d\n",noscaler);
+}
+if(scaler2 == 0) {
+  printf("Will NOT readout second scaler\n");
+} else {
+  printf("WILL readout second scaler\n");
+}
+if(tbreadout==1) {
+  printf("WILL write timing board config to file: %d\n",tbreadout);
+} else {
+  printf("Will NOT write timing board config to file: %d\n",tbreadout);
+}
+if(evtypefix) {
+  printf("WILL use EVTYPE fix for Injector DAQ: %d\n",evtypefix);
+}
+if(flexio==1) {
+  printf("WILL readout Flexible IO Module: %d\n",flexio);
+} else {
+  printf("Will NOT readout Flexible IO Module: %d\n",flexio);
+}
+if(flexio2==1) {
+  printf("WILL readout Flexible IO Module2: %d\n",flexio2);
+} else {
+  printf("Will NOT readout Flexible IO Module2: %d\n",flexio2);
+}
+
+if (autoled) {
+  printf("Will check for auto_led cycles \n");
+  rampdac12 = 0;  // better disable this
+  rampdac16 = 0;
+  bmwscan = 1;  // must have this
+ }
+
+//FIXME CG needed to get the scanWords
+bmwscan=1;
+//#ifdef BMWSTUFF//FIXME
+if(bmwscan==1) {
+  printf("WILL readout Beam Modulation and Scan Words: %d\n",bmwscan);
+} else {
+  printf("Will NOT readout Beam Modulation and Words: %d\n",bmwscan);
+}
+//#endif//FIXME
+
+if (rampdac12) printf("Will ramp the 12-bit DAC from %d to %d \n",MIN_DAC12,MAX_DAC12);
+if (rampdac16) printf("Will ramp the 16-bit DAC from %d to %d, starting at %d \n",MIN_DAC16,MAX_DAC16,MID_DAC16);
+
+
+/* Setup Device Pointers */
+
+/* Setup TIR */
+tirInit(TRIG_ADDR);
+
+
+/* TIR Pointer  - the old way (CODA v<2.2.1)
+   res = sysBusToLocalAdrs(0x29,TRIG_ADDR,&laddr);
+   if (res != 0) {
+   printf("Error in sysBusToLocalAdrs res=%d \n",res);
+   printf("ERROR:  TIR POINTER NOT INITIALIZED");
+   } else {
+   printf("Trigger Interface address = 0x%x\n",laddr);
+   tir[1] = (struct vme_tir *)laddr;
+   }
+*/
+
+if(flexio == 1) {
+  /* FlexIO Pointer */
+  res = sysBusToLocalAdrs(0x29,FLEXIO_ADDR,&laddr);
+  if (res != 0) {
+    printf("Error in sysBusToLocalAdrs res=%d \n",res);
+    printf("ERROR:  FlexIO POINTER NOT INITIALIZED");
+  } else {
+    printf("FlexIO address = 0x%x\n",laddr);
+    flex_io = (struct vme_flex_io *)laddr;
+  }
+  flex_io->csr1 = 0x8000; /* Reset Module */
+  flex_io->csr1 = 0x3;    /* Enable External Strobe and Latch Mode */
+}
+
+if(flexio2 == 1) {
+  /* FlexIO2 Pointer */
+  res = sysBusToLocalAdrs(0x29,FLEXIO_ADDR,&laddr);
+  if (res != 0) {
+    printf("Error in sysBusToLocalAdrs res=%d \n",res);
+    printf("ERROR:  FlexIO2 POINTER NOT INITIALIZED");
+  } else {
+    printf("FlexIO2 address = 0x%x\n",laddr);
+    flex_io = (struct vme_flex_io *)laddr;
+  }
+/*   flex_io->csr1 = 0x8000; /\* Reset Module *\/ */
+/*   flex_io->csr1 = 0x3;    /\* Enable External Strobe and Latch Mode *\/ */
+  flex_io->csr2 = 0x8000; /* Reset Module */
+  flex_io->csr2 = 0x3;    /* Enable External Strobe and Latch Mode */
+}
+
+/* ADC16 Configuration */
+// show default configurations
+  if (adc16bit) {
+    showHAPADC(-1);
+  }
+
+
+if(noscaler == 0) {
+  /* switch this, depending on which kind of scaler */
+#ifdef TYPE_SIS3801
+  res = sysBusToLocalAdrs(0x39,SCALER0,&laddr);
+  if (res != 0) {
+    printf("Error in sysBusToLocalAdrs res=%d \n",res);
+    printf("ERROR:  SCALER POINTER NOT INITIALIZED");
+  } else {
+    printf("SIS3801 Scaler address = 0x%x\n",laddr);
+    pscaler[0] = (struct fifo_scaler *)laddr;
+  }
+  
+  pscaler[0]->reset=1;
+  pscaler[0]->csr=0xff00fc00;
+  pscaler[0]->clear=1;
+  pscaler[0]->enable=1;
+  mode = 2;
+  tmode = mode << 2;
+  pscaler[0]->csr=0x00000C00;  /* clear Mode bits to Mode 0*/
+  pscaler[0]->csr=tmode;       /* set new Mode */
+  pscaler[0]->csr=0x10000;     /* Enable External Next Clock */
+  pscaler[0]->csr=0x40000;     /* Enable External Disable */
+
+  /* Do this for a second scaler */
+  if(scaler2==1) {
+    res = sysBusToLocalAdrs(0x39,SCALER1,&laddr);
+    if (res != 0) {
+      printf("Error in sysBusToLocalAdrs res=%d \n",res);
+      printf("ERROR:  SCALER POINTER NOT INITIALIZED");
+    } else {
+      printf("SIS3801 Scaler address = 0x%x\n",laddr);
+      pscaler[1] = (struct fifo_scaler *)laddr;
+    }
+  
+    pscaler[1]->reset=1;
+    pscaler[1]->csr=0xff00fc00;
+    pscaler[1]->clear=1;
+    pscaler[1]->enable=1;
+    mode = 2;
+    tmode = mode << 2;
+    pscaler[1]->csr=0x00000C00;  /* clear Mode bits to Mode 0*/
+    pscaler[1]->csr=tmode;       /* set new Mode */
+    pscaler[1]->csr=0x10000;     /* Enable External Next Clock */
+    pscaler[1]->csr=0x40000;     /* Enable External Disable */
+  }
+#endif  
+#ifdef TYPE_SIS3800
+  pscaler[0] = (struct SIS3800 *) SCALER0;
+  for (i=0; i < NSCALER; i++) {
+    pscaler[i]->reset = 1;
+    pscaler[i]->csr = 0x7000fd00;
+    pscaler[i]->clear = 1;
+    pscaler[i]->enclk = 1;
+    pscaler[i]->csr=0x00000C00;  /* clear Mode bits to Mode 0*/
+    mode = 1;
+    pscaler[i]->csr=(mode<<2);       /* set mode */
+  }
+#endif
+#ifdef TYPE_LEC1151
+  pscaler[0] = (struct lecroy_1151_scaler *) SCALER0;
+  for (i=0; i < NSCALER; i++) {
+    pscaler[i]->reset = 0;
+  }
+#endif
+#ifdef TYPE_CAEN560
+  pscaler[0] = (struct caen_v560_scaler *) SCALER0;
+  for (i=0; i < NSCALER; i++) {
+    pscaler[i]->ClrR = 0;
+    temp = pscaler[i]->clrVETOR;
+  }
+#endif
+}
+
+srand(9421);       /* seed random num generator */
+
+
+/* Clear TIR */
+ tir[1]->tir_csr = 0x80;
+%%
+
+  init trig source VME
+
+%%
+oport_state = 0;  /* start at zero */
+tir[1]->tir_oport=oport_state;
+
+/* To change helicity */
+/* assuming rampdelay = 200 (= 500 usec)  but ramp delay should probably be smaller like 20*/
+/* 30 Hz :   integrate 12840  */
+/* 120 Hz :   integrate 3090  */
+/* 240 Hz :   integrate 1465 (was rampdelay=50, integratetime=1465)  */
+/* 480Hz:   if rampdelay=32 (80us), integrate (<800?) 652*/
+/* 960 Hz :   rampdelay=150, integrate 240   */
+
+/* Caryn commented out timing board setting and put it in the bootfiles */
+
+/*   setTimeHAPTB(40, 13260);  */
+/*    setOverSampleHAPTB(0);  */
+
+   printf("Setting HAPTB and Oversampling"); 
+   dumpRegHAPTB();
+   
+
+%%
+
+    setDACHAPTB(1,MIN_DAC12); /* initialize */
+    setDACHAPTB(2,MID_DAC16);
+
+
+log inform "User Download Executed"
+
+end download
+    
+begin prestart
+
+log inform "Entering User Prestart"
+
+  link async trig source VME 1 to partrig and partrig_done
+  event type 1 then read VME 1
+
+
+%%
+
+  int j, iadc;
+  unsigned short tmp_rand;
+  int ped_test;
+  int fdbfile;
+  int bad_randmake=0;
+  extern void srand();
+  extern int rand();
+
+  CODA_RUN_IN_PROGRESS = 0;
+
+
+/*******************************************************/
+
+/* Fill Random Integer Array 
+   Do this during prestart, so that each run has a different ranny array*/
+
+if (adc16bit) {
+  printf("Generating Random Integer Array\n");
+  printf("Number of Array elements = %d\n",RANDNUM);
+  srand(ncnt);  /* seed random number generator with the event counter */
+  bad_randmake=0;
+  for (j=0;j<RANDNUM;j++) {
+    /* Generate random integers from 2048 to 63488 */
+    tmp_rand = (unsigned short) (61440.0*rand()/(32768+1.0));
+    while(tmp_rand==0 || tmp_rand==-1) {
+      bad_randmake=1;
+      tmp_rand = (unsigned short) (61440.0*rand()/(32768+1.0));
+    }
+    ranny[j] = 2048 + tmp_rand;
+  }
+
+  if(bad_randmake==1) {
+    int badfile;
+  
+    badfile=fopen("~apar/bryan/badrand/badrand.hist","a");
+    fprintf(badfile,"Another bad random number generation at ncnt=%d\n",
+	  ncnt);
+    fclose(badfile);
+  }
+}
+
+  if(tbreadout==1) {
+    /* Send timing board information to ~apar/db/timebrd/timebrd.cfg */
+    
+    fdbfile=fopen("~apar/db/timebrd/timebrd.cfg","w");
+    fprintf(fdbfile,"# Timing board information:\n# Integrate Time = %.2f ms, Ramp Delay = %.2f us\n\ \ \ \ oversamp %d ",
+	    (double)getIntTimeHAPTB()*0.0025,
+	    (double)getRampDelayHAPTB()*2.5,
+	    (int)getOverSampleHAPTB()+1);
+    fclose(fdbfile);
+  }
+
+
+ numadc18 = 0; 
+/* Caryn commented out adc initialization and put it in the bootfiles */
+ if (adc18bit) { 
+ 
+/* Set up 18-bit ADC */
+
+     numadc18 = adc18_getNum(); 
+
+/* store present values of gains */
+
+      for (iadc = 0; iadc < numadc18; iadc++) { 
+
+         conv_gain[iadc] = adc18_getconv(iadc);
+         int_gain[iadc] = adc18_getintgain(iadc);
+
+     }
+
+      adc18_zeromem();
+      adc18_initall();   /* this does a hard reset */
+
+      taskDelay(2*60); 
+ 
+      for (iadc = 0; iadc < numadc18; iadc++) { 
+
+         printf("Hello !  Setting up ADC18 # %d \n",iadc); 
+
+         adc18_stop(iadc); 
+
+         adc18_timesrc(iadc,0,0,0);  /* External time source */
+         adc18_gatemode(iadc,1);             
+	 /*         adc18_intgain(iadc,int_gain[iadc]);  */     /* intgain: 0-3, where 3 is minimum */
+	 /*         adc18_setconv(iadc,conv_gain[iadc]); */   /* conv (gain): 0-15 where 0 is minimum */
+         adc18_intgain(iadc,3);      /* intgain: 0-3, where 3 is minimum */
+         adc18_setconv(iadc,3);    /* conv (gain): 0-15 where 0 is minimum */
+         adc18_setsample(iadc,1); 
+
+         adc18_loaddac(iadc,0);  
+
+         adc18_flush(iadc); 
+
+      } 
+
+ 
+      if (righthrs) { 
+         printf("Setting ADC18 pedestals on R-HRS \n"); 
+         adc18_setpedestal(0,1821,1547,1769,1581); 
+         adc18_setpedestal(1,1446,1197,1935,1571); 
+      }else if (counthouse) {     
+         printf("Setting ADC18 pedestals in counting room crate \n"); 
+         adc18_setpedestal(0,1800,1000,1500,1000);
+         adc18_setpedestal(1,1800,1400,1500,1800);
+         adc18_setpedestal(2,1700,1300,1800,1600);  
+         adc18_setpedestal(3,1800,2000,1800,2000);  
+      } 
+
+ }   /* if (adc18bit) */
+
+
+  oport_state = 0;  /* start at zero */
+  tir[1]->tir_oport=oport_state;
+
+
+//int id=0;
+
+
+
+%%
+%%
+/* Setupt the VQWK modules */
+/* Caryn commented the vqwk initialzation out and moved it to the boot files*/
+if (counthouse && qweakadc) nvqwk=5;
+if (righthrs && qweakadc) nvqwk=2;
+if (lefthrs && qweakadc) nvqwk=1;
+
+printf("Lefthrs %d   qweakadc %d   Number of Qweak ADCs %d\n",lefthrs,qweakadc,nvqwk);
+
+if (nvqwk==0){
+  READOUT_VQWK = 0;
+} else {
+  READOUT_VQWK = 1;
+}
+/* flag that turns off Qweak ADCs */
+if (!qweakadc) READOUT_VQWK=0;
+
+%%
+log inform "Begin setting up the VQWK modules."
+
+if READOUT_VQWK is equal to 1 then
+   firstEvents = 2;
+   addr_vqwk = baseaddr_vqwk;
+   log inform "Begin setting up the VQWK modules."
+   logMsg("Set up %d ADCs beginning with ladd=0x%8x with address steps of 0x%8x",nvqwk,addr_vqwk,addrinc_vqwk,0,0,0);
+%%
+
+/* Caryn commented the vqwk initialzation out and moved it to the boot files*/
+ 
+  /* int id=0; */
+  /* vqwkInit(addr_vqwk,addrinc_vqwk,nvqwk);    */
+  /*   while(id<nvqwk){   */
+  /*     vqwkSetSamplePeriod(id,VQWK_SAMPLE_PERIOD);   */
+  /*     vqwkSetNumberOfBlocks(id,VQWK_NUM_BLOCKS);   */
+  /*     vqwkSetSamplesPerBlock(id,VQWK_SAMP_PER_BLOCK);   */
+  /*     vqwkSetGateDelay(id,VQWK_GATE_DELAY);   */
+  /*     id++;   */
+  /*   }   */
+   rol->dabufp = (long *) 0;
+   UEOPEN((unsigned int)(BASE_ROCCONFIG_EVENT+rol->pid),BT_UI4,0);
+   if (rol->dabufp){
+     int id=0;
+     while (id<nvqwk){
+       rol->dabufp += vqwkDumpStatus(id,rol->dabufp);
+       id++;
+     }
+   }else {
+     logMsg("No buffer, ROC configuration event not written",0,0,0,0,0,0);
+   }
+   UECLOSE;
+%%
+   log inform "VQWK ADCs initialized"
+end if
+
+
+
+
+
+
+  log inform "User Prestart Executed"
+
+end prestart
+
+begin end
+
+  int iadc;
+
+  CDODISABLE(VME,1,0);
+
+  rocActivate=0;
+
+%% 
+  if (adc18bit) {
+     for (iadc = 0; iadc < numadc18; iadc++) {
+       adc18_stop(iadc);  /* extremely important */
+     }
+  }
+%%
+
+/* Disable LNE Flag */
+   unset_tir_oport(OPORT_LNE);
+
+  CODA_RUN_IN_PROGRESS = 0;
+
+  log inform "User End Executed"
+
+end end
+
+begin pause
+
+  CDODISABLE(VME,1,0);
+  log inform "User Pause Executed"
+
+end pause
+
+begin go
+  
+  log inform "Entering User Go Go (bob)"
+  
+%% 
+  int i, iadc, nscaler, timeout, didreadsca;
+  int nmax, nloop;
+  unsigned short temp;
+
+  rocActivate=1;
+
+set_tir_oport(OPORT_SCALER);
+/* New (Apr 16) dont disable scaler in between runs.
+   A "looper" process continuously flushes scaler when CODA is not running. */
+if(noscaler == 0) {  
+#ifdef TYPE_SIS3801
+  /* SIS3801 */
+  if(scaler2==1) {
+    nscaler = 2;
+  } else {
+    nscaler = 1;
+  }
+  for (i=0; i<nscaler; i++) {
+    taskDelay(2);   /* 2 = 1/30 sec */
+    /*    pscaler[i]->csr = 0x1000000; /* disable LNE */
+    taskDelay(2);   
+    pscaler[i]->clear = 1;
+    taskDelay(2);   
+    pscaler[i]->next = 1;  /* flush FIFO */
+    taskDelay(2);   
+    pscaler[i]->csr = 0x10000; /* enable LNE */
+  }
+
+  if (counthouse) { /* may become obsolete if above trick works (Apr 16, 2010)*/
+
+    nmax = 100;
+
+    for (i = 0; i <nscaler; i++) {
+
+      for (nloop = 0; nloop < nmax; nloop++) {
+        didreadsca = 0;
+        timeout = 0;
+        while ( (pscaler[i]->csr&FIFO_EMPTY) != FIFO_EMPTY && timeout++ < 10) {
+           didreadsca = 1;
+        }
+        if (didreadsca == 0) {  
+	  /*      pscaler[i]->csr = 0x1000000; /* disable LNE */
+            pscaler[i]->clear = 1;
+            pscaler[i]->next = 1;  /* flush FIFO */
+            pscaler[i]->csr = 0x10000; /* enable LNE */
+	} else {
+	    goto okscaler1;
+	}
+      }
+okscaler1:
+      logMsg("Scaler %d cleared %d times \n",i,nloop,0,0,0,0);
+
+    }
+
+  }
+
+
+#endif
+#ifdef TYPE_SIS3800
+  /* SIS3800 */
+  for (i=0; i<NSCALER; i++) pscaler[i]->clear = 1;
+#endif
+#ifdef TYPE_LEC1151
+  /* LeCroy 1151 */
+  for (i=0; i<NSCALER; i++) pscaler[i]->reset = 1;
+#endif
+#ifdef TYPE_CAEN560
+  for (i=0; i < NSCALER; i++) {
+    pscaler[i]->ClrR = 0;
+    temp = pscaler[i]->clrVETOR;
+  }
+#endif
+}
+  
+ unset_tir_oport(OPORT_SCALER);
+
+if(flexio == 1) {
+  flex_io->csr1 = 0x100; /* Re-Activate Strobe */
+  flex_io->csr1 = 0x03; /* Re-Activate Strobe */
+}
+if(flexio2 == 1) {
+/*   flex_io->csr1 = 0x100; /\* Re-Activate Strobe *\/ */
+/*   flex_io->csr1 = 0x03; /\* Re-Activate Strobe *\/ */
+  flex_io->csr2 = 0x100; /* Re-Activate Strobe */
+  flex_io->csr2 = 0x03; /* Re-Activate Strobe */
+}
+
+if (adc18bit) for (iadc = 0; iadc<numadc18; iadc++) {
+  printf("Flushing adc18 number %d\n",iadc);
+  adc18_flush(iadc);
+}
+
+/* Enable LNE Flag */
+set_tir_oport(OPORT_LNE);
+
+/*
+if (autoled){ 
+
+  init0AutoLED();
+  
+  if(lefthrs){
+    unlockAutoLED();
+    enableBaseAutoLED(0); enableDiffAutoLED(0);
+    unset_tir_oport(0x08); unset_tir_oport(0x10); 
+    lockAutoLED();
+  }
+ }
+
+*/
+
+%%
+
+# VQWK ADC
+
+if READOUT_VQWK is equal to 1 then
+
+  log inform "Clear the ADCs during go"
+
+%%
+  /*  Configure the internal or external gating and clock modes,  *
+   *  then clear the ADCs.                                        */
+  int id=0;
+  int gateclkmode = VQWK_INTERNAL_MODE;
+  int gateflag = (gateclkmode & 2);
+  int clkflag  = (gateclkmode & 1);
+  logMsg("Setting gateflag to %d and clockflag to %d.\n",
+	 gateflag, clkflag,0,0,0,0);
+  while (id < nvqwk){
+    vqwkSetGateClockSources(id,gateflag,clkflag);
+    id++;
+  }
+  
+  id=0;
+  while (id < nvqwk){
+    vqwkClearAllChannels(id);
+    id++;
+  }
+%%
+
+end if
+
+%%
+  CDOENABLE(VME,1,0);
+  CODA_RUN_IN_PROGRESS = 1;
+
+%%
+
+end go
+
+begin trigger partrig
+
+variable i,j, iadc, event_ty, event_no
+variable icnt, nevt, nword, ncnt, nadc18cnt, csrA, csrB
+unsigned long ltest;
+unsigned short junk;
+static int dac16val=DEF_DAC16;
+static int dac12val=DEF_DAC12;
+static int maxdac16=65535;
+static int maxdac12=3650;
+int inumdat,ioverflow;
+int timeout,didreadsca;
+int maxloop=50;
+int verbose=0;
+unsigned short rannum;
+int tirdata;
+static int k;
+static int rannyint;
+int errstat;
+unsigned long sdata[NSCALER*32*12];
+unsigned long adc18data[MAX18CNT];
+int pulseclean;
+int localBMWobj;
+int localBMWfreq;
+int localBMWphase;
+int localBMWperiod;
+int localBMWcycnum;
+int nscaler;
+int iocTime;
+int i1,i2,i3,i4;
+int diffstate, baseval, prevbaseval;
+static int dacnoise18=10000;
+static int MINDAC18=10000;
+static int MAXDAC18=30000;
+static int dacsign18 = 1;
+static int setdac18_local = 0;
+ int what1=0;
+unsigned long tempdata;
+
+int* intpointer;
+
+int    timer[21];
+
+# Enable BUSY Flag
+set_tir_oport(OPORT_BUSY);
+%%
+if(evtypefix==1) EVTYPE &= 1;  /* Fix event type for Injector DAQ */
+event_ty = EVTYPE;
+event_no = *rol->nevents;
+iocTime = vxTicks;
+
+
+/* First event: start the ADC18.  This means the 1st event 
+   is no good.  This loop should go at the TOP
+   of the interrupt routine. */
+
+  if (adc18bit) {
+     for (iadc = 0; iadc < numadc18; iadc++) {
+        adc18_go(iadc);
+     }
+  }
+
+%%
+
+rol->dabufp = (long *)0;
+open event type EVTYPE of BT_UI4
+
+*rol->dabufp++ = 0xffb0b444;    
+
+%%
+
+if ( !mtread )  {
+
+ncnt++;
+
+// Read out TIR inputs FIRST!  It contains helicity info. 
+*rol->dabufp++ = 0xffdaf000;    /* Header for TIR */
+if(flexio==1) {
+  *rol->dabufp++ = flex_io->data1;
+  flex_io->csr1 = 0x100;
+  flex_io->csr1 = 0x03;
+  junk = flex_io->csr1;
+} else if(flexio2==1) {
+  *rol->dabufp++ = flex_io->data2;
+/*   flex_io->csr1 = 0x100; */
+/*   flex_io->csr1 = 0x03; */
+  flex_io->csr2 = 0x100;
+  flex_io->csr2 = 0x03;
+  junk = flex_io->csr2;
+} else {
+  /* In TS Control, readout from IPORT */
+  tirdata = tir[1]->tir_iport;
+  *rol->dabufp++ = tirdata & 0xfff;
+ }
+
+#ifdef BMWSTUFF//FIXME
+if(bmwscan==1) {
+  //////////////////////////////////////////////////
+  //
+  // BMW: early in readout! (the bmw process in asynchronous,
+  //      and we don't want nuthin' to change before we see it
+  //1
+  //////////////////////////////////////////////////
+  if(bmw_arm_trig || bmw_phase_num==bmw_phase_cnt){
+    bmw_period++;
+    bmw_phase=0;
+    bmw_phase_cnt=0;
+  }
+
+  if(bmw_phase_cnt!=-1){
+    bmw_phase_cnt++;    
+    bmw_phase++;
+  }
+  
+  localBMWobj = bmw_object;
+  localBMWfreq = bmw_freq;
+  localBMWphase = bmw_phase;
+  localBMWperiod = bmw_period;
+  localBMWcycnum = bmw_cycle_number;
+  
+  //  record if event was unclean for any portion of pulse
+  pulseclean = bmw_clean_pulse;
+  
+  //  if pulse was at some point unclean, but ended clean, prepare
+  //  next pulse to be seen as clean
+  //  if (!(pulseclean==1) && (bmw_clean==1)) bmw_clean_pulse=1;  
+}
+#endif//FIXME
+
+
+set_tir_oport(OPORT_SCALER);
+if(noscaler == 0) {
+
+#ifdef TYPE_SIS3801
+  if(scaler2==1) {
+    nscaler=2;
+  } else {
+    nscaler=1;
+  }
+  errstat = 0;
+  didreadsca = 0;
+  for (i = 0; i <nscaler; i++) {
+    timeout = 0;
+    while ( (pscaler[i]->csr&FIFO_EMPTY) != FIFO_EMPTY && timeout++ < 10) {
+      didreadsca = 1;
+      for (j = 0; j < 32; j++) {
+	sdata[i*32+j] = ((int)pscaler[i]->fifo[0])&DATA_MASK;  
+      }
+    }
+  }
+  if (timeout > 1) {
+    errstat = 1;
+    for (i = 0; i <nscaler; i++){
+      pscaler[i]->clear = 1;
+    }
+  }
+  if (didreadsca == 0) errstat |= 2;
+  *rol->dabufp++ = 0xfffca000 + nscaler + (errstat<<4); /* Header for scaler */
+  for (i = 0; i <nscaler; i++){
+    for (j = 0; j < 32; j++) {
+      *rol->dabufp++ = sdata[i*32+j];
+// Increment the shared-memory scaler data.  SIS1 is externally defined.
+      if (i==0) SIS1.data[j] += sdata[i*32+j]; 
+    }
+  }
+#else 
+  
+  *rol->dabufp++ = 0xfffca000 + NSCALER;   /* Header for scaler */
+  
+#endif
+#ifdef TYPE_SIS3800
+  /* SIS3800 scaler */
+  for (i=0; i < NSCALER; i++) {
+    for (j=0; j < 32; j++) {
+      *rol->dabufp++ = pscaler[i]->readCounter[j];
+    }
+  }
+#endif
+#ifdef TYPE_LEC1151
+  /* LeCroy 1151 scaler */
+  for (i=0; i < NSCALER; i++) {
+    for (j=0; j < 16; j++) {
+      *rol->dabufp++ = pscaler[i]->scaler[j];
+    }
+    for (j=0; j < 16; j++) *rol->dabufp++ = 0;  
+  }
+#endif
+#ifdef TYPE_CAEN560
+  /* CAEN model 560 scaler */
+  for (i=0; i < NSCALER; i++) {
+    for (j=0; j < 16; j++) {
+      *rol->dabufp++ = pscaler[i]->CntR[j];
+    }
+    for (j=0; j < 16; j++) *rol->dabufp++ = 0;  
+  }
+#endif
+ }
+ 
+ unset_tir_oport(OPORT_SCALER);
+ 
+ if (adc18bit) {  /* read out the 18-bit ADCs.  */
+
+   set_tir_oport(OPORT_HAPADC);
+
+   *rol->dabufp++ = 0xfadc1800+numadc18;
+   for (iadc = 0; iadc < numadc18; iadc++) {
+    
+     /*     if (iadc == 1) goto cont1; */
+
+     i1 = adc18_DataAvail(iadc);
+     csrA = adc18_getcsr(iadc); 
+     
+     if (setdac18_local) {
+       dacnoise18 = dacnoise18 + dacsign18 * 10;
+       if (dacnoise18 > MAXDAC18) dacsign18 = -1;
+       if (dacnoise18 < MINDAC18) dacsign18 = 1;
+       /*       adc18_setdac(iadc,dacnoise18); */
+     }
+     
+     icnt=0;
+     timeout=0;
+     for (j=0; j<maxloop; j++) {
+       icnt++;
+       if ( !adc18_Busy(iadc) ) break;
+     } 
+     if(icnt > maxloop-4 ) timeout=1; 
+
+     nevt = adc18_getevtcnt(iadc);
+     nword = adc18_getwordcnt(iadc);
+     nadc18cnt = nevt*nword; 
+
+     csrB = adc18_getcsr(iadc); 
+
+     if (timeout && event_no > 1 ) {  /* if you get these, it means trouble !! */
+       logMsg("(huh ?) TIMEOUT: ADC %d  Info %d %d %d 0x%x 0x%x\n",iadc,i1,nevt,nword,csrA,csrB);        
+       logMsg("-- timeout %d  event_no %d %d %d %d %d \n",timeout, event_no, 0,0,0,0);
+     }
+     if (verbose==1 && ((i2%100)==0)) {  /* random sample of normal events */
+       logMsg("NORMAL: ADC %d  Info %d %d %d 0x%x 0x%x\n",iadc,i1,nevt,nword,csrA,csrB);        
+     }
+
+     /*    if (iadc != 0 || counthouse == 0) { */ /* dirty trick; something crazy about CH crate */
+       
+       *rol->dabufp++ = 0xfb0b4000; 
+       *rol->dabufp++ = tirdata & 0xfff;
+       *rol->dabufp++ = iadc;
+       *rol->dabufp++ = maxloop;
+       *rol->dabufp++ = icnt;
+       *rol->dabufp++ = csrA;
+       *rol->dabufp++ = csrB;
+       *rol->dabufp++ = nevt;
+       *rol->dabufp++ = nword;
+       
+       if(timeout) { 
+         *rol->dabufp++ = 0xfa180bad;  
+       } else {
+         *rol->dabufp++ = nadc18cnt;
+       }
+       
+       // Read buffer: Put 'nword' data into datastream. 
+       // But ! the first event is junk (see comments above)  
+       
+       if (timeout) {
+	 /*         logMsg("-- timeout %d  put BAD DATA  %d nword %d %d %d %d \n",timeout, BAD18DATA, nword,0,0,0);*/
+         if (nword==0) nword=A18_NORM_NWORD;
+         for (j=0; j<nword; j++) {
+	   *rol->dabufp++ =  BAD18DATA;  //  don't analyze
+         }
+       } else {
+
+	 for (j=0; j<nword; j++) {
+
+           tempdata = adc18_getdata(iadc);
+	   /*           logMsg("good data %d  %d %d %d %d %d \n",tempdata,0,0,0,0,0);*/
+
+	   *rol->dabufp++ =  tempdata;
+         }
+       }
+       
+       // If data still available, flag this event but do NOT flush 
+       // the buffer as this can lead to synch problems.  The data
+       // you want is always at the top of the buffer.  If the buffer
+       // fills you'll see a logMsg.
+       
+       if (adc18_DataAvail(iadc)) {
+	 *rol->dabufp++ = 0xfa18bad1;  /* Might be a bad event (deadtime ?)  */
+       } else {
+	 *rol->dabufp++ = 0xfa18b0b1; 
+       }
+
+
+       
+       /*     } */  /* end of 'dirty trick' */
+     
+cont1: 
+     nevt = adc18_getevtcnt(iadc);
+
+
+   }  /* loop over 18-bit ADCs */          
+   
+   unset_tir_oport(OPORT_HAPADC);
+
+ }  /* end of 18-bit ADC */
+ 
+ 
+ if (adc16bit) {
+   
+   *rol->dabufp++ = 0xffadc000 + ADC_NUMSLOTS;   /* Header for ADC */  
+   
+   for (i=0; i < ADC_NUMSLOTS; i++) rol->dabufp = readoutHAPADC(rol->dabufp,i);
+   
+ }
+  
+*rol->dabufp++ = 0xfffbd000;    /*  Header for timing board info */
+*rol->dabufp++ = getDataHAPTB();
+*rol->dabufp++ = getRampDelayHAPTB();
+*rol->dabufp++ = getIntTimeHAPTB();
+*rol->dabufp++ = (getOverSampleCurrentHAPTB() << 8) + getOverSampleHAPTB();
+*rol->dabufp++ = getDACHAPTB(2); /* DAC16 */
+*rol->dabufp++ = getDACHAPTB(1); /* DAC12 */
+
+//#ifdef BMWSTUFF//FIXME
+if(bmwscan==1) {
+  *rol->dabufp++ = 0xfdacf000;  // Header for daqflags
+  /* Start with BMW words */
+  /* *rol->dabufp++ = localBMWphase;  //record where we are in a sinewave */
+  /* *rol->dabufp++ = localBMWperiod;  //record where we are in a sinewave */
+  /* *rol->dabufp++ = localBMWobj; //record the last-moved object (from beginning of readout) */
+  /* *rol->dabufp++ = localBMWfreq; // record the value of the last-moved object */
+  /* *rol->dabufp++ = localBMWcycnum; // record the number of this supercycle  */
+
+  /* Scan words next */
+  *rol->dabufp++ = getCleanSCAN();
+  *rol->dabufp++ = getDataSCAN(1);  
+  *rol->dabufp++ = getDataSCAN(2);  
+
+  /* Now the vxWorks Clock and software event increment*/
+  *rol->dabufp++ = iocTime;
+  *rol->dabufp++ = ncnt;
+}
+//#endif//FIXME
+
+if (adc16bit) {
+  for (i = 0; i < ADC_NUMSLOTS; i++) {  
+    if (usesDACHAPADC(i)==1) {
+    // lookup table of random numbers
+    rannum = ranny[rannyint];   /* rand goes from 0 to 32768 */
+    rannyint++;
+    if (rannyint>RANDNUM-1) rannyint=0;
+    
+    setDACHAPADC(i,rannum);
+  
+    // alternate methods of choosing dac noise values
+    //
+    //       rannum = 2048 + rand();   /* rand goes from 0 to 32768 */
+    //
+    //        if (rannum % 2 == 0){
+    //          dac_count[i] = 5000;
+    //        } else {
+    //          dac_count[i] = 60000;
+    //        }             
+    //
+  }
+ }
+}  /* if (adc16bit) block */
+
+
+// This is for tests using tboard dac
+
+/*  rannum = 2000 + rand();*/
+
+//  if (dac16val >= maxdac) dac16val = 18000;
+//  //  test for differences measurements...    
+//      if (rannum % 2 == 0){
+//      dac16val = 49000;  
+//      } else{
+//      dac16val = 50000; 
+//      }    
+//  setDACHAPTB(2,dac16val);
+
+/* Increment dac16 by 5 each window */
+if(getOverSampleCurrentHAPTB()==0) {
+  dac16val = dac16val + 5; 
+} 
+
+/*
+
+ if (autoled) {
+   
+   // for cycleAutoLED
+   if (inProgressAutoLED()) {
+
+     // kludge to avoid tir library include issues
+  
+     // turn the baseline on, cause inProgressAutoLED==1!       
+     // this has to come before stepAutoLED() !!!!
+     if (lefthrs){
+       if (getStateBaseAutoLED())       set_tir_oport(0x08); 
+       else                           unset_tir_oport(0x08); 
+     }
+     stepAutoLED();
+
+     // if cycleAutoLED in progress, turn the diff on/off based on 
+     // enableDiffAutoLED called from stepAutoLED
+     // this has to come after stepAutoLED()!!!
+     if(lefthrs){
+       // scan word updated in stepautoLED
+       if (getStateDiffAutoLED())       set_tir_oport(0x10);
+       else                           unset_tir_oport(0x10);
+     }
+   }
+ }
+*/
+   
+/* For the synch monitor.  Use dac12. */
+/* Note that dac12 will saturate the v2f at high voltage 
+   so, set the max around 3650.*/ 
+
+ if ( rampdac12 ) {   /* ramp function */
+   /* NEW code starts here - Cameron and Chandan July 28th 2018 */
+   if (dac12val == 2100 && numberSteps12 < 20) {
+     numberSteps12++;
+   }
+   else{  /* NEW code ends here, extra bracket closes else is new too */
+     dac12val += STEP_DAC12;  
+	 numberSteps12=0;
+     totalSteps12++;
+   }
+   
+   /*if (totalSteps12%1000==0 && gainStep<5){
+     for (iadc = 0; iadc < numadc18; iadc++) {
+       if(gainStep==0){
+	     adc18_setconv(iadc,4);*/ /* crl has default gains set above, these values are the ones that get updated after 1000*n events */
+/*	     adc18_intgain(iadc,2);
+       }
+	   if(gainStep==1){
+	     adc18_setconv(iadc,4);
+	     adc18_intgain(iadc,3);
+	   }
+	   if(gainStep==2){
+	     adc18_setconv(iadc,3);
+	     adc18_intgain(iadc,3);
+	   }
+	   if(gainStep==3){
+	     adc18_setconv(iadc,2);
+	     adc18_intgain(iadc,3);
+	   }
+	   if(gainStep==4){
+	     adc18_setconv(iadc,0);
+	     adc18_intgain(iadc,3);
+	   }
+     }
+     gainStep++;
+   }*/
+   //   dac12val = 400+rand()%3600;
+   //logMsg("new pitadac is %d\n", dac12val);
+   if (dac12val >= MAX_DAC12) dac12val = MIN_DAC12;
+   setDACHAPTB(1,dac12val);  
+
+   /*   getDACHAPTB(1);              */
+
+ }
+ if ( rampdac16 ) { /* ramp 16 function */ 
+   /*if ((dac16val == MID_DAC16 || dac16val == MID_NegValDAC16 || dac16val == MID_PosValDAC16) && numberSteps16 < 20) {
+     if (numberSteps16 < 50 && totalSteps16==512) {
+       numberSteps16++;
+       dac16val = MID_PosValDAC16;  
+     }
+     else{*/
+   dac16val = MIN_DAC16 + STEP_DAC16*totalSteps16;  
+   //numberSteps16=0;
+   totalSteps16++;
+   setDACHAPTB(2,dac16val);  
+ }
+ 
+/* blanked block by rupesh aug15, 2009 */
+/*  setDACHAPTB(1,dac12val);  */
+/*  getDACHAPTB(1);           */   
+/*  setDACHAPTB(1,dac12val);  */
+/*  getDACHAPTB(1);           */
+/* ************************************* */
+
+  if (V_MODE) {
+
+    dac16val+=10;
+    if (dac16val>=maxdac16) dac16val=32700;
+
+    setDACHAPTB(2,dac16val);
+
+  }
+
+%%
+
+# start VQWK data
+
+if READOUT_VQWK is equal to 1 then
+*rol->dabufp++ = VQWK_HEADER;
+
+%%
+int id = 0;
+ if (firstEvents>1){
+   firstEvents--;
+ } else if (firstEvents==1){
+   logMsg("Reenabling ADC gates at beginning of event %d.",
+	  event_no,0,0,0,0,0);
+   unset_tir_oport(OPORT_GATESOFF);
+   firstEvents = 0;
+ } else {
+   int readcounter_max = 2;
+   int readcounter;
+   int clearall = 0;
+   id=0;
+   set_tir_oport(OPORT_VQWKWAIT);
+   while (id < nvqwk){
+     timer[id] = vqwkWaitForDataReady(id, 0xFF, 200);
+     if (timer[id]<0) {
+       logMsg("Ev#%d: VQWK %d timed out with timer=%d.",
+	      event_no, id, timer[id],0,0,0);
+     }
+     id++;
+   }
+   id=0;
+   unset_tir_oport(OPORT_VQWKWAIT);
+   set_tir_oport(OPORT_VQWKREAD);
+   clearall = 0; 
+   while (id < nvqwk) {
+     if (vqwkProbeDataReady(id)!=0){
+       rol->dabufp+=vqwkReadRegisters(id, 0xff, rol->dabufp);
+       //      rol->dabufp+=vqwkBlockRead(id, rol->dabufp);
+     } else {
+       /*  Let's put in some fake data with debugging info. */
+       *(rol->dabufp)++ = 'FAKE';
+       *(rol->dabufp)++ = event_no;
+       *(rol->dabufp)++ = id;
+       *(rol->dabufp)++ = 0;
+       *(rol->dabufp)++ = 0;
+       *(rol->dabufp)++ = 0;
+       rol->dabufp += 7*6;
+     }
+     if (vqwkProbeDataReady(id)!=0){
+       logMsg("Ev#%d: VQWK %d has extra data.  Clear all!",
+	      event_no, id,0,0,0,0);
+       clearall = 1;
+     }
+     id++;
+   }
+   if (clearall == 1){
+     id=0;
+     logMsg("Ev#%d: Clearing all!", event_no,0,0,0,0,0);
+     while (id < nvqwk) {
+       vqwkClearAllChannels(id);
+       id++;
+     }
+     clearall = 0;
+   }
+ }
+ unset_tir_oport(OPORT_VQWKREAD);
+%%
+
+end if
+
+# end of VQWK data
+
+%%
+
+/* Disable BUSY Flag */
+  
+ unset_tir_oport(OPORT_BUSY);
+ 
+/*   added for dithering, 18March10, rupesh  */
+/*
+  if(counthouse){
+    if(bmw_arm_trig==1){
+      trigBMW(1);
+      //      flexioWriteMask(1,0x02);
+      bmw_arm_trig=0;
+    }
+    else trigBMW(0);
+      //flexioWriteMask(0,0x02);
+  }
+*/
+
+}  /* matches   "if ( !mtread )  {"   */
+
+%%
+
+close event
+
+sysTempeVeatClear(0); /* needed for the 6100 board */
+
+end trigger
+
+begin done partrig
+
+end done
+
+begin done
+
+# Acknowledge tir register
+CDOACK(VME,1,0);
+
+# Here's the old way (2.2.1)
+# poolEmpty = 0;
+# tirtack(0);
+
+end done
+
+begin status
+
+end status
+

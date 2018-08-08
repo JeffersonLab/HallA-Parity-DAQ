@@ -1,0 +1,250 @@
+#  -*- c -*-
+#  Source for VME control of Trigger Supervisor
+#    (CODA 2.0 readout list)
+#    David Abbott, CEBAF 1996
+#    Modified for HAPPEX by
+#    R. Michaels and B. Moffit  Nov 2002
+#
+#  This TS cannot be run as a ROC.  
+#
+#  Modifications
+#
+#  Jan 5, 2009    RWM    Add PVDIS crate(s)
+
+
+readout list TSL
+maximum 256,512
+polling
+vme readout
+
+
+# Motorola 2400 addressing.
+const TIR_ADDR = 0x0ad0
+const TS_ADDR = hex faed0000
+const MEM_ADDR = hex faed4000
+const MASK_01 = hex 0000ffff
+const MASK_02 = hex 000003ff
+
+include "usrstrutils.c"
+include "VME_source_local.h"
+
+static int debug = 1;   /* to debug(1) or not(0) */
+
+static int inj, righthrs, lefthrs, pvdisleft, pvdisright;
+static int nocnthouse=0;
+
+extern int bigendian_out; 
+
+
+begin download
+
+unsigned short Nsync;
+
+%% 
+/* send data from big endian VME cpu to little endian host (linux)*/
+bigendian_out = 0; 
+
+  init_strings();
+
+  tsmem = (long *)MEM_ADDR;
+/* Note, vme_ts1 is defined in VME_source_local.h, necessary for
+   version 1 of Trig. Super. */
+  ts1 = (struct vme_ts1* )TS_ADDR;
+  ts1->csr = 0x8000;     /* reset Trigger Supervisor*/
+
+/*  ts1->csr2 |= 0x03E0;    ROC Lock mode on all BRANCHES for ts1  */
+
+/* Program Sync Register, synch = Nsync-1, where Nsync=number of events
+                                       between synch checks */
+     Nsync=1;   
+     ts1->sync = Nsync; 
+     Nsync=ts->sync;  
+/*    ts1->csr2 |= 0x1;   Enable scheduled syncs for ts1  */
+     daLogMsg("INFO","TS programmed for buffering, sync interval = %d\n",
+       Nsync+1);
+
+
+%% 
+  log inform " User Download Executed"
+
+end download
+    
+begin prestart
+
+  variable isca
+  variable jj, kk, laddr, mem_value
+
+  log inform "Entering User Prestart"
+
+  init_strings();
+
+  init trig source VME
+  link sync trig source VME 1 to ts_trig and ts_trig_done
+  event type 1 then read VME 1
+
+  rol->poll = 1;
+  *rol->async_roc = 1;
+  VMEflag = 0;
+  VME_prescale = 1;
+
+%%
+
+  ts1->csr = 0x8000;  /* reset */
+  ts1->csr = 0x0200;  /* ROC Lock mode on all BRANCHES*/
+  ts1->trig = 0x1FFF;  /* Enable ALL triggers. */
+
+/* Get usrstring to determine TS Setup */
+inj=0; righthrs=0; lefthrs=0; pvdisleft=0; pvdisright=0;
+righthrs = getflag(RIGHTHRS);
+lefthrs  = getflag(LEFTHRS);
+pvdisleft  = getflag(PVDISLEFT);
+pvdisright = getflag(PVDISRIGHT);
+nocnthouse = getflag(NOCNTHOUSE);
+inj = getflag(INJ);
+
+/* Here's a key:
+   ROC0 branch 1  -  Counting House crate
+   ROC1 branch 4  -  LHRS crate
+   ROC2 branch 4  -  RHRS crate
+   ROC0 branch 2  -  Injector crate
+   ROC1 branch 3  -  Test crate
+   ROC3 branch 4  -  PVDIS crate on R-HRS
+   ROC4 branch 4  -  PVDIS crate on L-HRS
+
+*/
+
+  jj = 0;
+/* The Counting House DAQ */
+ if (!nocnthouse) {
+    jj |= 0x01;   /* enable ROC0 on branch 1 */
+ }
+
+if(righthrs) {
+  jj |= 0x4000000;  /* enable ROC2 on branch 4 */
+  printf("Add Right HRS crate \n");
+}
+
+if(lefthrs) {
+  jj |= 0x20000000;  /* enable ROC5 on branch 4 */
+  printf("Add Left HRS crate \n");
+}
+
+if(inj) {
+  jj |= 0x100;      /* enable ROC0 on branch 2 */
+  printf("Including Injector Crate \n");
+}
+
+printf("-> TS Crate configuration : 0x%x\n",jj);
+
+
+  ts1->roc = jj;
+
+  ts1->timer[1] = 0x05;   /* Level 2 Timer */
+  ts1->timer[2] = 0x05;   /* Level 3 Timer */
+
+/* Set all prescale factors = 1  for HAPPEX */
+
+  for (jj = 0;  jj < 8; jj++) {
+      ts1->prescale[jj] = 0;
+  }
+
+/* Front End Busy timer 40ns/count */
+  ts1->timer[3] = 10;     
+
+  ts1->csr = 0x0080;      /* Enable Timer */
+
+/*  construct memory data  ---  in the following model, all trigger patterns 
+    that form the memory address are assigned to trigger class 1.  For those 
+    trigger patterns with a single hit, the ROC code is set to be the trigger 
+    input number.  For any overlap we set the coda event type to 1 for safety.
+    All level 1 accept (L1A) signals are asserted for every pattern */
+   
+  ts_memory[0] = 0;
+  for( laddr = 1; laddr <= 4095;  laddr++ )          /*  assign data to all memory addresses  */
+	ts_memory[laddr] = 0xFF13;
+  jj = 0;
+  for( laddr = 1; laddr <= 4095;  laddr = 2*laddr )   /*  fix ROC code for single hit patterns  */
+     {
+        jj++;
+        ts_memory[laddr] = 0xFF03 + (0x10)*jj;
+     }
+/* load and test memory */        
+  for( laddr = 0; laddr <= 4095;  laddr++ )
+     {
+        tsmem[laddr] = ts_memory[laddr];
+        mem_value = tsmem[laddr];
+        if( ts_memory[laddr] != ( MASK_01 & mem_value ) )
+                  printf("***** TS memory error %x %x\n",ts_memory[laddr],MASK_01&mem_value);
+     }
+
+/* Enable level 1 hardware */
+
+    printf("Enabling level 1 hardware \n");
+
+    ts1->csr = 0x20;
+
+%%
+
+
+  log inform "User Prestart Executed in ts.crl"
+
+end prestart
+
+begin end
+
+
+# Go turned off  
+  ts1->csr = 0x10000;   
+  VMEflag = 0;
+
+
+  log inform "User End Executed"
+
+end end
+
+begin pause
+
+  ts1->csr = 0x10000;
+  VMEflag = 0;
+
+  log inform "User Pause Executed"
+
+end pause
+
+begin go
+
+%%
+  VMEflag = 0;  /* don't enable dummy triggers */
+  taskDelay(60*3); 
+
+  printf("Enabling TS \n");
+  
+  ts1->csr = 0x21;
+%%
+
+end go
+
+begin trigger ts_trig
+
+end trigger
+
+begin done ts_trig
+
+end done
+
+begin done
+
+  poolEmpty = 0;
+
+end done
+
+begin status
+
+end status
+
+
+
+
+
+
+

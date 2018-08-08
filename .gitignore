@@ -1,0 +1,20 @@
+# Ignore things
+
+# shared object libraries and helper files
+*.so
+*.d
+
+# Backup save files
+*~
+*.swp
+
+# Doxygen files
+doc
+
+# Output files
+*.root
+*.out
+*.pdf
+*.log
+*.dot
+
