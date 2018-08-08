@@ -1,0 +1,161 @@
+CODA Readout Lists (CRLs) for FADC
+New Compton Photon DAQ
+Diana Parno
+November 2008
+
+I. Introduction
+
+The new Compton photon DAQ, currently under development at Carnegie Mellon
+University and at Jefferson Laboratory, relies on a Struck 3320 FADC for 
+data-taking. Coda Readout Lists (CRLS) allow CODA data acquisition systems
+to collect data from the VME crate wherein the FADC -- along with a timing
+board, trigger interface, and scaler -- resides.
+
+This README is concerned with three .crl files, each representing a different
+mode of running:
+
+	Accumulator.crl
+	Sampling.crl
+	Triggered.crl
+
+The code is in the directory /adaqfs/home/apar/devices/fadc .
+
+II. Modifying a CRL
+
+If you make any changes to a .crl file, you will need to compile it before the
+changes can be propagated to the VME crate. Before beginning, make sure that you
+are logged into the apar account on one of these four machines: adaql1, adaql2,
+adaql3, or adaql4. These machines have the appropriate versions of vxWorks 
+installed.
+
+To make the library sis3320Lib, type "make".
+
+To make the .crl, type "./makelist <filename>.crl ppc". This will convert the .crl
+file into a .c file, and thence to a .o file.
+
+Changes to the coda readout object files are propagated to the VME crate at the
+"Download" stage of runcontrol (but only if the VME crate has already been
+configured to the relevant setting.)
+
+Quick note for beginners: you will occasionally find blocks of C code nestled in
+a .crl file. Individual lines might end with a semicolon; larger blocks are enclosed
+in %% tags (opening and closing tags are the same).
+
+III. Initialization
+
+There are several commands that should be performed roughly once per run or less. 
+These might be done at the download stage, at the prestart stage, or at go. (More 
+rarely, it might be desirable to set some process to run at the end.) The advantage
+of performing these commands at prestart is that you reset the VME crate at every 
+run; the primary disadvantage is that this curtails your ability to change values live, 
+while running. If you anticipate active debugging of any initialized quantity, it's
+probably best to initialize at download -- not at prestart.
+
+Here are some of the types of initialization present in the CRLs:
+
+- 	Set Addresses: These are commands like
+		const TIR_ADDR = 0x0ed0 
+	which gives the ROC the address at which it can read a particular module. In 
+	general, these only need to be touched if you are installing or removing modules.
+
+-	Set Constant Parameters: These are parameter settings that will affect the precise
+	way in which the FADC (and other modules) runs. Some examples:
+		const MAX_SAMPLE_LENGTH = 512	# no more than 512 samples are read out
+		const MAX_NUM_EVENTS =1			# only read out 1 CODA event at a time
+		const STOP_DELAY = 100			# after receiving a stop signal, wait 100 
+										# time units before writing
+
+- 	Set Subbank Structures: CODA data can be sorted into subbanks, which makes readout
+	and later data unpacking simpler. A typical command might look like:
+		const TIMING = 0x210
+	We will discuss subbanks in greater detail later.
+
+-	Initialize Modules: Teach the modules their addresses, etc.
+		tirInit(TIR_ADDR)				# trigger interface
+		initHAPTB()						# HAPPEX timing board
+		sis3320SetupMode(ADC_ID, 2)		# FADC
+		sis3320SetMaxNumEvents(ADC_ID, MAX_NUM_EVENTS)
+
+A few of these commands are not self-explanatory. Here's a quick orientation. In 
+general, the first argument (0) indicates the relevant channel (out of the FADC's
+eight input channels).
+
+sis3320SetGain(0,-1,1)		Sets the "CML" bit on the FADC. This increases the 
+							gain by a factor of 2 -- and decreases the noise by
+							a factor of 7 or more. On future modules this command
+							may not be as vital.
+
+sis3320SetThresh(0, 0, 3702, 3500)	Sets the thresholds for the accumulators.
+									Several accumulators will only include a sample
+									in the integration if the signal has a certain
+									relationship with these thresholds -- e.g. Acc.
+									2 integrates signals between the near and far
+									thresholds.
+
+sis3320SetN5N6(0, 0, 10, 100, 10, 100)	Accumulators 4 and 5 include a certain number
+ 										of samples before and after a threshold cros-
+										sing; these arguments specify how many. (Last
+										four arguments: N4before, N4after, N5before,
+										N5after.) The command is called "SetN5N6" for
+										historical reasons.
+
+scaen560 ...				The Caen scaler is actually a module that contains 16
+							independent scalers, which is why it is given as an array.
+
+tir[1]->tir_oport=0;		The TIR has several output bits. One of these is used to
+							enable or disable "triggered mode" -- that is, the output
+							bit is sent to the triger logic unit. Setting the oport to
+							0 enables triggering (currently wired to self-trigger).
+							Setting the oport to 0xffff disables triggering. The index
+							into tir specifies which TIR module it is, in the event
+							that the crate contains several units.
+
+IV. Subbanks
+
+Data is sorted into subbanks, which are written separately. Not all subbanks are 
+valid for all modes.
+
+A. FADC_SAMPLES (first subbank)
+
+This subbank contains sample data; on xcefdmp its address is 0x212. It is written 
+only for Triggered and Sampling modes (not for Accumulator mode). Here are the words
+in this subbank:
+
+Word 0:	ADC channel (this will almost always be zero)
+Word 1: A word indicating what types of sampling and triggering are being used
+Word 2: Pointer to the sample that was most recently read
+Word 3: Maximum number of samples expected
+Words 4 ...: Sampling data. Two samples are combined into one word, making these
+		words difficult to understand simply by looking at them. Don't worry --
+		the analysis code can unpack these!
+
+B. FADC_ACCUM (second subbank)
+
+This subbank contains only accumulator data; on xcefdmp its address is 0x211. It is
+written for all modes. This subbank contains the words:
+
+Word 0: ADC channel (again, this will almost always be zero)
+
+followed by 6 groups of 3 words each:
+Word 1 + 3*n:	Number of samples in accumulator n (should be ~6 million for Acc 0)
+Word 2 + 3*n:	Low bits of total accumulator n value
+Word 3 + 3*n:	High bits of total accumulator n value
+
+Word 19:	DAC value of the FADC (this setting sets the baseline, or pedestal)
+Word 20: 	Near threshold 
+Word 21:	Far threshold
+Word 22:	Number of samples taken before a threshold crossing into Acc 4
+Word 23:	Number of samples taken after a threshold crossing out of Acc 4
+Word 24: 	Number of samples taken before a threshold crossing into Acc 5
+Word 25:	Number of samples taken after a threshold crossing out of Acc 5
+
+C. TIMING (third subbank)
+
+This subbank contains timing data and other values from auxiliary modules in the 
+VME crate; it is written for all modes. On xcefdmp, its address is 0x210. It contains
+the words:
+
+Word 0:		Ramp delay from the HAPPEX Timing Board
+Word 1:		Integration time of the HAPPEX Timing Board
+Words 2-...: Data from the TIR input bits (e.g. real-time data)
+Words N-16...N: Data from the 16 independent scalers on the Caen V560 module

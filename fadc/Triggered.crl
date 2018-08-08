@@ -1,0 +1,310 @@
+#  Source for generic VME readout using a
+#  TJNAF trigger supervisor interface register (TIR)
+#  as a source for external interrupts
+#
+#    David Abbott, TJNAF 1996
+
+readout list VME1
+
+maximum 9216,500
+vme readout
+#ts control
+
+const TIR_ADDR = 0x0ed0
+const ADC_ID = 0
+const ADC_CH = 0
+
+const usescaler=1
+const SCALER_ADDR = 0xceb500
+
+## MAX_SAMPLE_LENGTH must be multiple of 4
+const MAX_SAMPLE_LENGTH = 512
+const MAX_BUF_LENGTH = 20000
+const MAX_NUM_EVENTS = 1
+const STOP_DELAY = 300
+
+### add sub-bank structures here if I need. 
+ 
+ const TIMING = 0x0210
+ const FADC_ACCUM = 0x0211
+ const FADC_SAMPLES = 0x0212
+
+## const HTB3 = 0x0210
+
+#include "HAPTB_util.h"
+include "scaler1.h"
+ 
+unsigned long laddr;
+extern int bigendian_out;
+
+### ok up to here. 
+
+begin download
+
+variable res
+unsigned long laddr;
+unsigned short temp;
+
+
+# If the ROC is sending data to Little-Endian EB
+# e.g. a x86 Linux CPU then bigendian_out = 0.
+# Unless the ROC is also running on a Little-Endian
+# machine. Then set bigendian_out=1.
+  bigendian_out = 0;
+
+
+# Setup TIR
+  tirInit(TIR_ADDR);
+
+# Setup the HAPTB (Timing Board) 
+### need to see which one comes first... 
+
+  initHAPTB(); 
+  setTimeHAPTB(200,12000);
+
+  sis3320SetupMode(ADC_ID, 2);
+  sis3320SetMaxNumEvents(ADC_ID, MAX_NUM_EVENTS);
+  sis3320SetMaxSampleLength(ADC_ID, MAX_SAMPLE_LENGTH);
+
+  sis3320StopDelay(0,STOP_DELAY);
+  sis3320SetGain(0,-1,1);
+  sis3320SetDac(0,45000);
+
+  sis3320SetThresh(0, 0, 3700, 3200);
+  sis3320SetN5N6(0, 0, 10, 100, 10, 100);
+
+%%
+ if (usescaler) {
+   res = sysBusToLocalAdrs(0x39, SCALER_ADDR, &laddr);
+   if (res != 0) {
+      printf("ERROR: cannot address scaler at 0x%x \n",SCALER_ADDR);
+      scaen560[0] = 0;
+   } else {
+      scaen560[0] = (struct caen_v560_scaler *)laddr;
+   }
+   if (scaen560[0] != 0) {  /* clear scaler */
+        printf("Clearing scalers in download \n ");
+        scaen560[0]->ClrR=0;
+        temp = scaen560[0]->clrVETOR;
+   }
+ }
+%%
+
+
+  log inform "User Download Executed"
+
+end download
+
+#### ok up to here.     
+
+begin prestart
+
+  log inform "Entering User Prestart"
+
+  init trig source VME
+  link async trig source VME 1 to usrtrig and usrtrig_done
+  event type 1 then read VME 1
+
+  tir[1]->tir_oport=0;
+  printf("Output port = %x \n", tir[1]->tir_oport);
+
+
+#  sis3320SetupMode(ADC_ID,2);
+
+
+  log inform "User Prestart Executed"
+
+end prestart
+
+
+
+begin end
+
+  CDODISABLE(VME,1,0);
+
+  log inform "User End Executed"
+
+end end
+
+
+begin pause
+
+  CDODISABLE(VME,1,0);
+
+  log inform "User Pause Executed"
+
+end pause
+
+
+begin go
+
+  unsigned short temp;
+  
+  log inform "Entering User Go"
+  sis3320Disable(ADC_ID);
+  sis3320Enable(ADC_ID);
+  sis3320StartSampling(ADC_ID);
+#  sis3320StopDelay(0,400);
+#  sis3320SetGain(0,-1,1);
+#  sis3320SetDac(0,45000);
+  
+#  sis3320SetThresh(0, 0, 3706, 3704);
+#  sis3320SetN5N6(0, 0, 10, 100, 10, 100);
+  
+%%
+  if (usescaler) {
+     if (scaen560[0] != 0) {  /* clear scaler */
+        printf("Clearing scalers in go \n");
+         scaen560[0]->ClrR=0;
+         temp = scaen560[0]->clrVETOR;
+     }
+  }
+%%
+
+
+ CDOENABLE(VME,1,0);
+
+end go
+
+begin trigger usrtrig
+
+ variable stat, csr, jj
+ volatile unsigned short tir_dat;
+
+
+rol->dabufp = (long *) 0;
+
+    open event type EVTYPE of BT_BANK 
+
+#### 1st Sub-Bank 
+   open bank FADC_SAMPLES of BT_UI4
+%%
+
+ int nwrds=0;
+ int i;
+ int index;
+ int buf_pointer;
+ int read_pointer;
+ int buf_len;
+ int sub_page;
+ int sub_index;
+ int sub_length;
+ int* mem_loc;
+
+//logMsg("dabufp= 0x%x\n",rol->dabufp);
+
+ /* Check if an Event is available */
+ stat = sis3320Finished(ADC_ID);
+//DEBUG fix mysterious sis3320Finished problem
+ stat = 1;
+ if(stat>0) {
+    sis3320Disable(0);
+   *rol->dabufp++=ADC_CH;
+    *rol->dabufp++=0x000020002;   //Trigger Mode 2,  Sampling Data Version 2
+                              //Version 2, two samples per word with
+                              //first sample being earliest sample in buffer
+    buf_pointer=sis3320GetBufLength(ADC_ID); 
+    *rol->dabufp++=buf_pointer;  //not too important, but keep it anyway
+
+//if wrapping, buf_pointer should start with register value 
+//if not wrapping, buf_pointer should start at zero
+//    buf_pointer=0;             //not in wrap mode.  Start at beginning of buffer
+
+    *rol->dabufp++=MAX_SAMPLE_LENGTH;          //#words read from fadc
+	*rol->dabufp++=sis3320GetActualNumEvents(ADC_ID);
+    sis3320SetupMapping(ADC_ID, ADC_CH, 0, MAX_SAMPLE_LENGTH,
+        &sub_page, &sub_index, &sub_length, &mem_loc);
+    read_pointer = buf_pointer / 2;
+    for (i=0;i<sub_length/2;i++){
+      *rol->dabufp++=mem_loc[read_pointer+sub_index];
+      read_pointer++;
+      if(read_pointer>=MAX_SAMPLE_LENGTH/2) read_pointer=0;
+    }
+ } 
+
+else {
+
+   *rol->dabufp++ = 0xda0000da;
+   logMsg("ERROR: FADC Samples not ready  sis3320Status = 0x%x\n",stat,0,0,0,0,0);
+ }
+ 
+%%
+
+close bank
+
+
+#### 2nd Sub-Bank 
+
+
+
+   open bank FADC_ACCUM of BT_UI4
+
+%%
+ int i;
+ //stat = sis3320Finished(ADC_ID);
+ if(stat>0) {
+   *rol->dabufp++ =ADC_CH;
+   for (i=0; i<6; i++){
+      *rol->dabufp++ = sis3320GetNumAcc(0, ADC_CH>>1, ADC_CH%2, i);
+      *rol->dabufp++ = sis3320GetAccum(0,ADC_CH>>1,ADC_CH%2,i,1);
+      *rol->dabufp++ = sis3320GetAccum(0,ADC_CH>>1,ADC_CH%2,i,0);
+   }
+   *rol->dabufp++ = sis3320GetDac(0, ADC_CH);
+   *rol->dabufp++ = sis3320GetThresh(0,ADC_CH,1);
+   *rol->dabufp++ = sis3320GetThresh(0,ADC_CH,2);
+   *rol->dabufp++ = sis3320GetN5N6(0,ADC_CH);
+   sis3320Enable(ADC_ID);
+   sis3320StartSampling(ADC_ID);
+ } 
+
+else {
+
+   *rol->dabufp++ = 0xda0000da;
+   logMsg("ERROR: FADC accumulators not ready Status = 0x%x\n",stat,0,0,0,0,0);
+ }
+ %%
+
+close bank
+
+#### 3rd Sub-Bank 
+
+   open bank TIMING of BT_UI4
+
+%%
+
+   *rol->dabufp++ = getRampDelayHAPTB();
+   *rol->dabufp++ = getIntTimeHAPTB();
+/* When standalone, get data from tir_dat; when TS-mode use tir_iport */
+   tir_dat = tir[1]->tir_dat; 
+   *rol->dabufp++ = (tir_dat & 0xfff);
+   if (usescaler && scaen560[0] != 0) {
+      *rol->dabufp++ = 0xcae56000;  /* header for scaler */
+      for (jj = 0; jj<16; jj++) *rol->dabufp++ = scaen560[0]->CntR[jj];
+   }
+
+%%
+
+close bank
+## closing of the event which includes the sub-banks. 
+
+close event 
+
+end trigger
+
+begin done usrtrig
+
+end done
+
+
+begin done
+
+# Acknowledge tir register
+  CDOACK(VME,1,0);
+
+end done
+
+begin status
+
+end status
+
+

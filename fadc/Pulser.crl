@@ -1,0 +1,331 @@
+#  Source for generic VME readout using a
+#  TJNAF trigger supervisor interface register (TIR)
+#  as a source for external interrupts
+#
+#    David Abbott, TJNAF 1996
+#    Developped by Fatiha and Gregg for the FADC crate. 
+
+readout list VME1
+
+## maximum 9216,100
+maximum 600000,100
+vme readout
+#ts control
+
+const TIR_ADDR = 0x0ed0
+##sis3320 parameters
+const ADC_ID = 0
+const ADC_CH = 0
+const MAX_NUM_EVENTS = 80
+## MAX_SAMPLE_LENGTH must be multiple of 4
+const MAX_SAMPLE_LENGTH = 512
+const MAX_BUF_LENGTH = 20000
+
+### add sub-bank structures here if needed.
+ 
+ const TIMING = 0x0210
+ const FADC_ACCUM = 0x0211
+ const FADC_SAMPLES = 0x0212
+
+## const HTB3 = 0x0210
+
+#include "HAPTB_util.h"
+unsigned long PulserAmplitude = 0; 
+unsigned long laddr;
+extern int bigendian_out;
+
+### ok up to here. 
+
+begin download
+
+variable res
+
+
+# If the ROC is sending data to Little-Endian EB
+# e.g. a x86 Linux CPU then bigendian_out = 0.
+# Unless the ROC is also running on a Little-Endian
+# machine. Then set bigendian_out=1.
+  bigendian_out = 0;
+
+
+# Setup TIR
+  tirInit(TIR_ADDR);
+
+# Setup the HAPTB (Timing Board) 
+
+  initHAPTB(); 
+  setTimeHAPTB(300,12000);
+  setDACHAPTB(1,0);	
+   sis3320SetupMode(ADC_ID,3);   
+###//Mode 3 for default Multievent acquisition
+  sis3320SetMaxNumEvents(ADC_ID, MAX_NUM_EVENTS);
+  sis3320SetMaxSampleLength(0,MAX_SAMPLE_LENGTH);
+  sis3320SetStopMode(0,1);
+
+  sis3320StopDelay(0,0);
+/*(0,-1,1) for FADC 0 all channels set CML bit on */
+  sis3320SetGain(0,-1,1); 
+  sis3320SetDac(0,45000);  
+ sis3320SetThresh(0, ADC_CH, 3703, 3700);	
+ sis3320SetN5N6(0, ADC_CH, 10, 100, 12, 112);
+/* enable FADC USER BIT for pulser synch input */
+ sis3320EnableUserBit(0,1);
+
+
+  log inform "User Download Executed"
+
+end download
+
+
+#### ok up to here.     
+
+begin prestart
+
+  log inform "Entering User Prestart"
+
+  init trig source VME
+  link async trig source VME 1 to usrtrig and usrtrig_done
+  event type 1 then read VME 1
+
+  tir[1]->tir_oport=0xffff;
+  printf("Output bits: %x /n", tir[1]->tir_oport);
+
+### try dumping sis3320 status
+ sis3320Display(0);
+ sis3320GrpDisplay(0,0);
+  log inform "User Prestart Executed"
+
+end prestart
+
+
+
+begin end
+
+  CDODISABLE(VME,1,0);
+
+  log inform "User End Executed"
+
+end end
+
+
+begin pause
+
+  CDODISABLE(VME,1,0);
+
+  log inform "User Pause Executed"
+
+end pause
+
+
+begin go
+  
+  log inform "Entering User Go"
+  sis3320Start(ADC_ID);  
+  CDOENABLE(VME,1,0);
+
+end go
+
+
+begin trigger usrtrig
+
+ variable stat, csr
+ rol->dabufp = (long *) 0;
+
+    open event type EVTYPE of BT_BANK 
+
+#### 1st Sub-Bank 
+   open bank FADC_SAMPLES of BT_UI4
+
+%%
+
+ int nwrds=0;
+ int i;
+ int index;
+ int buf_pointer;
+ int read_pointer;
+ int buf_len;	
+ int sub_page;
+ int sub_index;
+ int sub_length;
+ int* mem_loc;
+ sis3320Disable(0);
+
+if(PulserAmplitude<=11){
+	setDACHAPTB(1,PulserAmplitude);
+}
+else if(PulserAmplitude>11 && PulserAmplitude<15){
+	setDACHAPTB(1,15);
+}
+else if(PulserAmplitude>=15 && PulserAmplitude<=50){
+	setDACHAPTB(1,PulserAmplitude);
+}
+/*else if(PulserAmplitude>50 && PulserAmplitude<=150){
+	PulserAmplitude++;
+	setDACHAPTB(1,PulserAmplitude);
+}
+else if(PulserAmplitude>150 && PulserAmplitude<=1000){
+	PulserAmplitude+=200;
+	setDACHAPTB(1,PulserAmplitude);
+}*/
+else if(PulserAmplitude>50 && PulserAmplitude<=120){
+	PulserAmplitude++;
+	setDACHAPTB(1,PulserAmplitude);
+}
+else if(PulserAmplitude>120 && PulserAmplitude<=1000){
+	PulserAmplitude+=500;
+	setDACHAPTB(1,PulserAmplitude);
+}
+else if(PulserAmplitude>1000){
+	setDACHAPTB(1,PulserAmplitude);
+	PulserAmplitude=0;
+}
+
+ PulserAmplitude++;
+/*
+ if(PulserAmplitude==1){
+	setDACHAPTB(1,0);
+ }else if (PulserAmplitude==2){
+	setDACHAPTB(1,10);
+}else if (PulserAmplitude==3){
+	setDACHAPTB(1,16);
+}else if (PulserAmplitude==4){
+	setDACHAPTB(1,18);
+}else if (PulserAmplitude==5){
+	setDACHAPTB(1,20);
+}else if (PulserAmplitude==6){
+	setDACHAPTB(1,25);
+ }else if (PulserAmplitude==7){
+	setDACHAPTB(1,30);
+ }else if (PulserAmplitude==8){
+	setDACHAPTB(1,35);
+ }else if (PulserAmplitude==9){
+	setDACHAPTB(1,40);
+ }else if (PulserAmplitude==10){
+	setDACHAPTB(1,60);
+ }else if (PulserAmplitude==11){
+	setDACHAPTB(1,900);
+ }else if (PulserAmplitude==12){
+	setDACHAPTB(1,70);
+ }else if (PulserAmplitude==13){
+	setDACHAPTB(1,50);
+ }else if (PulserAmplitude==14){
+	setDACHAPTB(1,37);
+ }else if (PulserAmplitude==15){
+	setDACHAPTB(1,32);
+ }else if (PulserAmplitude==16){
+	setDACHAPTB(1,27);
+ }else if (PulserAmplitude==17){
+	setDACHAPTB(1,22);
+ }else if (PulserAmplitude==18){
+	setDACHAPTB(1,19);
+ }else if (PulserAmplitude==19){
+	setDACHAPTB(1,17);
+ }else if (PulserAmplitude==20){
+	setDACHAPTB(1,15);
+ }else if (PulserAmplitude>=21){
+	setDACHAPTB(1,5);
+	PulserAmplitude=0;
+}*/
+
+//logMsg("dabufp= 0x%x\n",rol->dabufp);
+
+ /* Check if an Event is available */
+ stat = sis3320Finished(ADC_ID);
+
+ if(stat>0) {
+    *rol->dabufp++=ADC_CH;
+    *rol->dabufp++=0x000020003;  //Trigger Mode 3,  Sampling Data Version 1
+                                 //Version 1, one sample per word with
+                                 //first sample being earliest sample in buffer
+    buf_len=sis3320GetBufLength(ADC_ID); 
+    if(buf_len>MAX_BUF_LENGTH) buf_len=MAX_BUF_LENGTH;
+    *rol->dabufp++=buf_len; //#samples read from fadc
+    *rol->dabufp++=MAX_SAMPLE_LENGTH;
+    *rol->dabufp++=sis3320GetActualNumEvents(ADC_ID);
+    sis3320SetupMapping(ADC_ID,ADC_CH,0,buf_len,
+	&sub_page, &sub_index, &sub_length, &mem_loc);
+     for (i=0;i<sub_length/2;i++){
+	*rol->dabufp++=mem_loc[i+sub_index];
+    }
+ } 
+
+
+else {
+   *rol->dabufp++ = 0xda0000da;
+   logMsg("ERROR: FADC Samples not ready  sis3320Status = 0x%x\n",stat,0,0,0,0,0);
+ }
+ 
+%%
+
+close bank
+
+
+#### 2nd Sub-Bank 
+
+
+   open bank FADC_ACCUM of BT_UI4
+
+%%
+ int i;
+ stat = sis3320Finished(ADC_ID);
+ if(stat>0) {
+   *rol->dabufp++ =ADC_CH;
+   for (i=0; i<6; i++){
+      *rol->dabufp++ = sis3320GetNumAcc(0, ADC_CH>>1, ADC_CH%2, i);
+      *rol->dabufp++ = sis3320GetAccum(0,ADC_CH>>1,ADC_CH%2,i,1);
+      *rol->dabufp++ = sis3320GetAccum(0,ADC_CH>>1,ADC_CH%2,i,0);
+   }
+   *rol->dabufp++ = sis3320GetDac(0, ADC_CH);
+   *rol->dabufp++ = sis3320GetThresh(0,ADC_CH,1);
+   *rol->dabufp++ = sis3320GetThresh(0,ADC_CH,2);
+   *rol->dabufp++ = sis3320GetN5N6(0,ADC_CH);
+ } 
+
+else {
+
+   *rol->dabufp++ = 0xda0000da;
+   logMsg("ERROR: FADC accumulators not ready Status = 0x%x\n",stat,0,0,0,0,0);
+ }
+ %%
+
+
+close bank
+
+#### 3rd Sub-Bank 
+
+   open bank TIMING of BT_UI4
+
+%%
+
+   *rol->dabufp++ = getRampDelayHAPTB();
+   *rol->dabufp++ = getIntTimeHAPTB();
+   *rol->dabufp++ = getDACHAPTB(1);
+%%
+
+close bank
+## closing of the event which includes the sub-banks. 
+
+ close event 
+
+
+end trigger
+
+begin done usrtrig
+ sis3320Enable(ADC_ID);
+// sis3320Start(ADC_ID);
+
+end done
+
+
+begin done
+
+# Acknowledge tir register
+  CDOACK(VME,1,0);
+
+end done
+
+begin status
+
+end status
+
+

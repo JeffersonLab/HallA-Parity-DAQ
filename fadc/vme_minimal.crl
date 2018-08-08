@@ -1,0 +1,112 @@
+# 
+#  Test readout list for vme.  This minimalist
+#  version does not read a device, and has only the
+#  "black magic" needed to respond to triggers.
+#
+#    Bob Michaels 
+
+readout list VME1
+maximum 1024,1000
+vme readout
+# if LINUXHOST=1(0) host is linux(not)
+const LINUXHOST = 1
+const TIR_ADDR = 0xed0
+extern int bigendian_out;
+
+
+begin download
+
+# Sending data to Little-Endian EB
+%%  
+  if (LINUXHOST) {
+      printf("Assuming EB is on a Little-Endian cpu\n");      
+      bigendian_out = 0;
+  }
+
+  tirInit(TIR_ADDR);
+%%
+  
+  log inform "User Download Executed"
+
+end download
+    
+begin prestart
+
+  log inform "Entering User Prestart"
+
+  init trig source VME
+  link async trig source VME 1 to partrig and partrig_done
+  event type 1 then read VME 1
+
+  log inform "User Prestart Executed"
+
+end prestart
+
+begin end
+
+  CDODISABLE(VME,1,0);
+  log inform "User End Executed"
+
+end end
+
+begin pause
+
+  CDODISABLE(VME,1,0);
+  log inform "User Pause Executed"
+
+end pause
+
+begin go
+  
+  log inform "Entering User Go"
+  CDOENABLE(VME,1,0);
+
+end go
+
+begin trigger partrig
+ 
+  variable ii
+  static int icnt=0;
+
+  tir[1]->tir_oport=0x7;
+
+ rol->dabufp = (long *)0;
+ open event type EVTYPE of BT_UI4
+
+  output hex da00b0b4
+%%
+  for(ii=0;ii<10;ii++) {
+     *rol->dabufp++ = 10000*ii + icnt++;
+  }
+%%
+  output hex da0000ff
+
+  tir[1]->tir_oport=0x0; 
+
+  close event
+
+end trigger
+
+begin done partrig
+
+end done
+
+begin done
+
+# Acknowledge tir register
+   CDOACK(VME,1,0);
+
+
+end done
+
+begin status
+
+end status
+
+
+
+
+
+
+
+

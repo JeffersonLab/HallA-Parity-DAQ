@@ -1,0 +1,253 @@
+# 
+#  Readout list for SIS3320 ADC.
+#  The 1st paramter of "maximum" is >= max bytes of readout.
+#
+#    Bob Michaels 
+
+readout list VME1
+maximum 250000,8
+vme readout
+# if LINUXHOST=1(0) host is linux(not)
+const LINUXHOST = 1
+const TIR_ADDR = 0xed0
+
+# restriction on buffer due to memory limits 50K ok, 80not (for max 250K,8)
+const MAXBUF = 5000
+
+include "usrstrutils.c"
+
+static int use_thresh;
+static int get_samples;
+static int use_scalers=0;   /* to turn on/off scalers */
+
+extern int bigendian_out;
+
+extern int rocActivate;
+extern int scaRunReady;
+
+extern int vxTicks;   /* vxWorks time ticks */
+
+
+begin download
+
+  unsigned long res, laddr;
+
+# Sending data to Little-Endian EB
+
+%%  
+  init_strings();
+  get_samples = getflag(FADCSAMP);
+  use_thresh = getflag(FADCTHRESH);
+  printf("(6/20/08) FADC DAQ setup.  get_samples = %d    use_thresh  %d\n",
+              get_samples, use_thresh);
+
+  if (LINUXHOST) {
+      printf("Assuming EB is on a Little-Endian cpu\n");      
+      bigendian_out = 0;
+  }
+
+  res = (unsigned long) sysBusToLocalAdrs(0x29,TIR_ADDR,&laddr);
+  if (res != 0) {
+     printf("Error in sysBusToLocalAdrs res=%d \n",res);
+  } else {
+     printf("Trigger Interface address = 0x%x\n",laddr);
+     tir[1] = (struct vme_tir *)laddr;
+  }
+  printf("tir[1] address = 0x%x\n",tir[1]);
+
+
+
+%%
+  
+  log inform "User Download Executed (vme_sis3320.crl) "
+
+end download
+    
+begin prestart
+
+  log inform "Entering User Prestart"
+
+  init trig source VME
+  link async trig source VME 1 to partrig and partrig_done
+  event type 1 then read VME 1
+
+  log inform "Setting up SIS3320 board"
+
+  sis3320Reset(0);
+
+  sis3320DefaultSetup(0);
+%%
+ sis3320SetThresh(0,0,-1,0);  // clears thresholds
+ // thresholds 1,2
+ if (use_thresh) {
+   sis3320SetThresh(0,0,1982,1000);
+   sis3320SetN5N6(0, 0, 10, 20, 10, 20);
+ }
+
+
+ // Note, the DAC settings correspond to the pedestals approximately:
+ //   DAC     ped
+ //  30000    155
+ //  32000    500
+ //  33100    688
+ //  40600   ~2000  (midpoint)
+ //  50000   ~3600 
+
+  sis3320SetDac(0,38050);	
+
+  setTimeHAPTB(40,1300);
+
+  rocActivate = 0;
+
+%%
+  log inform "User Prestart Executed"
+
+end prestart
+
+begin end
+
+  rocActivate = 0;
+  CDODISABLE(VME,1,0);
+  sis3320SetRunFlag(0);
+  log inform "User End Executed"
+
+end end
+
+begin pause
+
+  rocActivate = 0;
+  CDODISABLE(VME,1,0);
+  sis3320SetRunFlag(0);
+  log inform "User Pause Executed"
+
+end pause
+
+begin go
+  
+  log inform "Entering User Go"
+
+  CDOENABLE(VME,1,0);
+
+end go
+
+begin trigger partrig
+ 
+  variable time1, ihel, ichan, iacc, nring, i,j,id
+  int icnt, buf_len, len, which_adc, wadc2, which_chan;
+  volatile unsigned short tir_dat;
+/* 10 usec per click -> 30 msec = 30000 -> 60K is safe */
+  int timelimit=60000;
+
+  id = 0;   /* this is the board (only 1 for now) */
+  which_adc = 0;   /* this is the channel in the board (also just 1 for now) */
+  wadc2 = 1;  /* 2nd ADC */
+
+  tir[1]->tir_oport=0x1;
+
+  time1 = vxTicks;
+
+
+  rol->dabufp = (long *)0;
+  open event type EVTYPE of BT_UI4
+  
+%%
+
+/* sis3320Start(0) enables the sequence, therefore it is done
+   at end of last sequence (or at go).
+   VME interrupt comes next.
+   Start signal after ramp delay; stop after window delay.
+   Might as well read scalers after since stop takes awhile  */
+
+
+/* TIR, timing board data, FADC thresholds, etc */
+  *rol->dabufp++ = 0xfb0b4444;   
+/* When standalone, get data from tir_dat; when TS-mode use tir_iport */
+  tir_dat = tir[1]->tir_dat; 
+  *rol->dabufp++ = (tir_dat & 0xfff);
+  *rol->dabufp++ = getRampDelayHAPTB();
+  *rol->dabufp++ = getIntTimeHAPTB();
+  *rol->dabufp++ = sis3320GetThresh(id,which_adc,0);
+  *rol->dabufp++ = sis3320GetThresh(id,which_adc,1);
+
+/* FADC SIS3200 */
+
+  icnt = 0;
+  while ( sis3320Finished(0) == 0 ) {
+       if (icnt++ > timelimit) break;
+  }
+
+  *rol->dabufp++ = 0xfa320000 + icnt;
+  
+  if(sis3320IsRunning() == 0 || icnt > timelimit ) { 
+       *rol->dabufp++ = 0xfaff0bad; 
+  } else {
+       buf_len = sis3320GetBufLength(0); 
+       len = buf_len;
+/* this line seems to crash: */
+/* *rol->dabufp++ = sis3320_Sum_ADC_Channel (0, which_adc, 0, buf_len, 0); */
+       if (len > MAXBUF) len = MAXBUF;
+       if (get_samples == 0) len = 0;
+       *rol->dabufp++ = buf_len;
+       *rol->dabufp++ = len;
+       for (iacc = 0; iacc < 6; iacc++) { /* 6 accumulators */
+         *rol->dabufp++ = sis3320GetNumAcc(id, (which_adc >> 1), which_adc%2, iacc);
+         *rol->dabufp++ = sis3320GetAccum(id, (which_adc >> 1), which_adc%2, iacc, 0);
+         *rol->dabufp++ = sis3320GetAccum(id, (which_adc >> 1), which_adc%2, iacc, 1);
+       }
+// Add accum for 2nd ADC chan (might be a noise monitor)
+       
+       for (iacc = 0; iacc < 6; iacc++) { /* 6 accumulators */
+         *rol->dabufp++ = sis3320GetNumAcc(id, 1, 0, iacc);
+         *rol->dabufp++ = sis3320GetAccum(id,  1, 0, iacc, 0);
+         *rol->dabufp++ = sis3320GetAccum(id,  1, 0, iacc, 1);
+       }
+
+
+/*  readout only 1 channel  */
+       if ( get_samples == 1 ) {
+          which_chan = 0;
+          *rol->dabufp++ = 0xfadc3320; 
+          for (ichan = 0; ichan < len/2; ichan++) {
+	     *rol->dabufp++ = sis3320GetData(0, which_adc, ichan, 0);
+             *rol->dabufp++ = sis3320GetData(0, which_adc, ichan, 1);
+          }
+       }
+    }
+
+  sis3320Start(id);
+
+
+  
+%%
+
+  tir[1]->tir_oport=0x0; 
+
+  close event
+
+  sysTempeVeatClear(0);
+
+
+end trigger
+
+begin done partrig
+
+end done
+
+begin done
+
+# Acknowledge tir register
+   CDOACK(VME,1,0);
+
+end done
+
+begin status
+
+end status
+
+
+
+
+
+
+
+
