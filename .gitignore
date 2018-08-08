@@ -2,6 +2,7 @@
 
 # shared object libraries and helper files
 *.so
+*.o
 *.d
 
 # Backup save files
