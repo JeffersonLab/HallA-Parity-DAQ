@@ -5,9 +5,12 @@ This is for the software for the Hall A Parity DAQ.
 Cameron Clarke turned the directory ~apar/devices into a github repository
 in August 2018.
 
-Sept 2018
-Bob Michaels made a tarfile of all directories, then for obsolete or unused software
-he either deleted or moved them to another place.  E.g. ~/caen767/.  
+Sept 2018 
+
+Bob Michaels made a tarfile of all directories and archived that in MSS.
+For obsolete or unused software Bob either deleted or moved them to 
+another place.  E.g. ~/caen767/.  
+
 Only stuff remains that is part of the Parity DAQ.   
  
 Also, Bob looked at differences to ~/caryn/devices and pulled all her changes over,
