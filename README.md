@@ -19,3 +19,26 @@ and/or make a "forked" copy of the repository and make "pull" requests.
 
  In March 2015, this software was imported to Bob Michaels github repository
 from CVS.  Prior to 2015 the software had been maintained in CVS at JLab.
+
+Compiling
+
+To clean all object files and executibles
+make clean
+
+To make all files
+make all
+
+  (and if you just type "make" it only compiles adc16, not sure why.  but "make all" works.)
+
+To make specific packages
+
+18-bit HAPPEX ADC libs
+make adc18  
+
+Qweak ADC libs
+make vqwk
+
+Green monster aka config
+make config/config
+
+
