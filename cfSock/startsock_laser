@@ -1,0 +1,39 @@
+#  Script to load cfSockSer, with all necessary utilities
+#  usage:
+#   ->  < /home/adaq/devices/cfSock/startsock_laser
+# 
+#
+#  load time board routines 
+#       (must be done first, to define globals used elsewhere)
+#
+ld < /home/adaq/devices/timebrd/HAPTB_util.o
+ld < /home/adaq/devices/timebrd/HAPTB_config.o
+initHAPTB
+#
+#  load adc routines
+#
+ld < /home/adaq/devices/adc/HAPADC_ch.o
+ld < /home/adaq/devices/adc/HAPADC_config.o
+initHAPADC
+#
+#  load bmw routines
+#
+ld < /home/adaq/devices/bmw/bmwClient.o
+ld < /home/adaq/devices/bmw/bmw_config.o
+#
+#  load scan routines
+#
+ld < /home/adaq/devices/scan/SCAN_util.o
+ld < /home/adaq/devices/scan/SCAN_config.o
+#
+#  add route to bmw Server IOC
+#
+routeAdd "129.57.236.67","129.57.164.1"
+#
+#  load cfSock server
+#
+ld < /home/adaq/devices/cfSock/cfSockSer.o
+#
+#  to start, use command:
+#  sp cfSockSer
+#
