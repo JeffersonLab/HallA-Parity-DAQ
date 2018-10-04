@@ -1,0 +1,62 @@
+#  I (Bob M) have kept this Makefile here (renamed Makefile_local) for
+# historical reasons.  Should instead "make all" in the parent directory.
+# Note, the "mlongcall" is default.  Oct, 2018.
+#
+#
+# Description:  Makefile for sysVmeDma Library for the Tempe Chip
+#   This driver is specific to the MVME 6100 Series of CPUs.
+#   Compiling requires access to 5.5.1 vxWorks headers.
+#
+
+WIND_BASE=/adaqfs/halla/apar/vxworks/headers/5.5/
+
+#Set Operating system we are using
+override OSTYPE := $(shell uname)
+
+ifndef ARCH
+  ARCH = VXWORKSPPC
+endif
+
+ifeq ($(OSTYPE),SunOS)
+LIBDIR = $(CODA)/$(ARCH)/lib
+CFLAGS = -O $(DEFS)
+
+ifeq ($(ARCH),VXWORKSPPC)
+INCDIR=$(WIND_BASE)/target/h
+CC = ccppc
+
+DEFS = -mcpu=604 -DCPU=PPC604 -DVXWORKS -D_GNU_TOOL -DVXWORKSPPC
+
+#INCS = -fno-for-scope -fno-builtin -fvolatile -fstrength-reduce -mlongcall -I. -I../ppcTimer -I$(INCDIR)
+INCS = -fno-for-scope -fno-builtin -fvolatile -fstrength-reduce -mlongcall -I. -I$(INCDIR)
+
+endif
+
+endif
+
+ifeq ($(OSTYPE),Linux)
+LIBDIR = $(CODA)/$(ARCH)/lib
+CFLAGS = -O $(DEFS)
+
+ifeq ($(ARCH),VXWORKSPPC)
+INCDIR=$(WIND_BASE)/h
+CC = ccppc
+
+DEFS = -mcpu=604 -DCPU=PPC604 -DVXWORKS -D_GNU_TOOL -DVXWORKSPPC
+
+#INCS = -fno-for-scope -fno-builtin -fvolatile -fstrength-reduce -mlongcall -I. -I../ppcTimer -I$(INCDIR)
+INCS = -fno-for-scope -fno-builtin -fvolatile -fstrength-reduce -mlongcall -I. -I$(INCDIR)
+
+endif
+
+endif
+
+
+all: usrTempeDma.o
+
+usrTempeDma.o: usrTempeDma.c tempe.h sysTempeDma.c
+	$(CC) -c $(CFLAGS) $(INCS) -o $@ usrTempeDma.c
+
+clean:
+	rm -f *.o
+

@@ -1,0 +1,53 @@
+Notes on using the Tempe DMA engine (on the MV6100) for vxWorks
+----------------------------------------------------------------
+
+# Load Tempe DMA Library
+ld< usrTempeDma.o
+
+# Setup Address and data modes for transfers
+#
+#  usrVmeDmaConfig(addrType, dataType, sstMode);
+#
+#  addrType = 0 (A16)    1 (A24)    2 (A32)
+#  dataType = 0 (D16)    1 (D32)    2 (BLK32)  3 (MBLK)   4 (2eVME)   5 (2eSST)
+#  sstMode  = 0 (SST160) 1 (SST267) 2 (SST320)
+#   (Note sstMode is ignored for all dataTypes< 5)
+#
+# Set for A32 BLK32 transfers
+usrVmeDmaConfig(2,2,0)
+
+# Printout Tempe DMA engine status
+sysVmeDmaShow()
+
+--------------------------------------------
+Tempe Library API
+
+To start DMA Transfers:
+
+int sysVmeDmaSend (
+    UINT32 locAdrs,   /* Local RAM Address */
+    UINT32 vmeAdrs,   /* VME Bus Address */
+    int size,       /* Size of the DMA Transfer in bytes*/
+    BOOL toVme    /* Direction of the DMA  toVme=0 for VME->RAM transfers */
+   )
+
+Function returns 0 if the DMA was successfully started or -1 if there
+was an Error.
+
+
+To check on the status of DMA transfers:
+
+int usrVmeDmaDone(int chan)
+
+   chan = 0  (We only use the first of two DMA engines on the chip)
+
+This function polls the status of the DMA engine and returns when
+the transfer is complete or there is an error.
+
+return value (int ret)
+
+  ret=0  - Transfer successful. All "size" bytes were transfered
+  ret>0  - Transfer was terminated by a VME Bus error, and "ret" bytes were NOT transfered
+           So (size - ret) bytes were sucessfully transfered. 
+  ret<0  - Error in the transfer. No Bytes were transfered.
+
