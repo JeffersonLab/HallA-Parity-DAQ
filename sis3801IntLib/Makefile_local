@@ -1,0 +1,66 @@
+#  I (Bob M) have kept this Makefile here (renamed Makefile_local) for
+# historical reasons.  Should instead "make all" in the parent directory.
+# Note, the "mlongcall" is default.  Oct, 2018.
+#
+
+ifndef OSNAME
+  OSNAME := $(subst -,_,$(shell uname))
+endif
+
+ifndef ARCH
+  ARCH = VXWORKSPPC55
+endif
+
+ifeq ($(OSNAME),Linux)
+LIBDIR = $(CODA)/$(ARCH)/lib
+CFLAGS = -O $(DEFS)
+
+ifeq ($(ARCH),VXWORKSPPC54)
+  WIND_BASE=/site/vxworks/5.4/ppc
+  GCC_EXEC_PREFIX=/site/vxworks/5.4/ppc/host/x86-linux/lib/gcc-lib/
+  CC = /site/vxworks/5.4/ppc/host/x86-linux/bin/ccppc
+
+  INCDIR=/site/vxworks/5.4/ppc/target/h
+
+  DEFS = -mcpu=604 -DCPU=PPC604 -DVXWORKS -D_GNU_TOOL -DVXWORKSPPC
+  INCS = -Wall -fno-for-scope -fno-builtin -fvolatile -fstrength-reduce -I. -I$(INCDIR)
+endif
+
+ifeq ($(ARCH),VXWORKSPPC55)
+  WIND_BASE=/site/vxworks/5.5/ppc
+  GCC_EXEC_PREFIX=/site/vxworks/5.5/ppc/host/x86-linux/lib/gcc-lib/
+  CC = /site/vxworks/5.5/ppc/host/x86-linux/bin/ccppc
+
+  INCDIR=/site/vxworks/5.5/ppc/target/h
+
+  DEFS = -mcpu=604 -DCPU=PPC604 -DVXWORKS -D_GNU_TOOL -DVXWORKSPPC
+  INCS = -Wall -fno-for-scope -fno-builtin -fvolatile -fstrength-reduce -I. -I$(INCDIR)
+endif
+
+ifeq ($(ARCH),VXWORKS68K51)
+  INCDIR=/site/vxworks/5.3/68k/target/h
+  CC = cc68k
+  DEFS = -DCPU=MC68040 -DVXWORKS -DVXWORKS68K51
+  INCS = -Wall -mc68020 -fvolatile -fstrength-reduce -nostdinc -I. -I$(INCDIR)
+endif
+
+endif
+
+
+
+all: echoarch scalIntLib.o scalMsgLib.o
+
+scalIntLib.o: scalIntLib.c scalIntLib.h
+	$(CC) -c $(CFLAGS) $(INCS) -o $@ scalIntLib.c
+
+scalIntLib_longcall.o: scalIntLib.c scalIntLib.h
+	$(CC) -c $(CFLAGS) $(INCS) -mlongcall -o $@ scalIntLib.c
+
+scalMsgLib.o: scalMsgLib.c
+	$(CC) -c $(CFLAGS) $(INCS) -o $@ scalMsgLib.c
+
+clean:
+	rm -f *.o
+
+echoarch:
+	echo "Make for $(ARCH)"
