@@ -63,6 +63,9 @@ FLEXIO = flexio/flexioLib.o
 CAFFB = caFFB/caFFB.o
 VQWK = qweak/vqwk.o qweak/vqwk_32.o qweak/vqwk_32_longcall.o qweak/vqwk_config.o
 GMPROG = config/config
+SIS3801 = sis3801IntLib/scalIntLib.o sis3801IntLib/scalMsgLib.o
+STR7200 = STR7200/STR7200.o
+TEMPEDMA = tempeDma/usrTempeDma.o
 
 adc16: $(ADC16)
 adc18: $(ADC18)
@@ -75,8 +78,8 @@ caFFB: $(CAFFB)
 auto: $(AUTO)
 flexio: $(FLEXIO)
 vqwk: $(VQWK)
-vxall: $(ADC16) $(ADC18) $(BMW) $(SOCK) $(TB)  $(SCAN) $(CAFFB) $(AUXTB) $(AUTO) $(FLEXIO) $(VQWK)
-all:  $(ADC16) $(ADC18) $(BMW) $(SOCK) $(TB) $(SCAN) $(CAFFB) $(GMPROG)  $(AUXTB) $(AUTO) $(FLEXIO) $(VQWK)
+vxall: $(ADC16) $(ADC18) $(BMW) $(SOCK) $(TB)  $(SCAN) $(CAFFB) $(AUXTB) $(AUTO) $(FLEXIO) $(VQWK) $(SIS3801) $(STR7200) $(TEMPEDMA)
+all:  $(ADC16) $(ADC18) $(BMW) $(SOCK) $(TB) $(SCAN) $(CAFFB) $(GMPROG)  $(AUXTB) $(AUTO) $(FLEXIO) $(VQWK) $(SIS3801) $(STR7200) $(TEMPEDMA)
 
 version: clean
 	mkdir $(VERS) 
@@ -101,6 +104,9 @@ clean:
 	rm -f flexio/flexioLib.o
 	rm -f qweak/*.o
 	rm -f auto/auto_rhwp.o auto/auto_filter.o auto/auto_led.o auto/auto_led_left.o auto/auto_PITA.o
+	rm -f sis3801IntLib/scalIntLib.o sis3801IntLib/scalMsgLib.o
+	rm -f STR7200/STR7200.o
+	rm -f tempeDma/usrTempeDma.o
 
 realclean:  clean
 	rm -f *.d
@@ -141,8 +147,8 @@ adc16/HAPADC_test.o: adc16/HAPADC.c adc16/HAPADC.h
 	ccppc -o $@ $(CCVXFLAGS) -DTESTCRATE adc16/HAPADC.c
 
 adc16/HAPADC_config.o : adc16/HAPADC_config.c adc16/HAPADC_cf_commands.h
-	rm -f $@
-	ccppc -o $@ $(CCVXFLAGS) adc16/HAPADC_config.c
+	rm -f $@ 
+	ccppc -o $@ $(CCVXFLAGS) adc16/HAPADC_config.c ; echo "Should `make all` .... all done"
 
 adc18/hapAdc18Test.o: adc18/hapAdc18Lib.c adc18/hapAdc18Lib.h
 	rm -f $@
@@ -256,6 +262,23 @@ auto/auto_led_left.o: auto/auto_led_left.c auto/auto_led.h
 auto/auto_filter.o: auto/auto_filter.c
 	cd auto; rm -f $@; \
 	ccppc -c $(CCVXFLAGS) auto_filter.c
+
+sis3801IntLib/scalIntLib.o: sis3801IntLib/scalIntLib.c sis3801IntLib/scalIntLib.h
+	rm -f $@
+	ccppc -c $(CCVXFLAGS) $(INCS) -o $@ sis3801IntLib/scalIntLib.c
+
+sis3801IntLib/scalMsgLib.o: sis3801IntLib/scalMsgLib.c
+	rm -f $@
+	ccppc -c $(CCVXFLAGS) $(INCS) -o $@ sis3801IntLib/scalMsgLib.c
+
+STR7200/STR7200.o: STR7200/STR7200.c STR7200/STR7200.h
+	rm -f $@
+	ccppc -c $(CCVXFLAGS) $(INCS) -o $@ STR7200/STR7200.c
+
+tempeDma/usrTempeDma.o: tempeDma/usrTempeDma.c tempeDma/tempe.h tempeDma/sysTempeDma.c
+	rm -f $@
+	ccppc -c $(CCVXFLAGS) $(INCS) -o $@ tempeDma/usrTempeDma.c
+
 
 #.SUFFIXES:
 #.SUFFIXES: .c .cc .cpp .C .o .d
