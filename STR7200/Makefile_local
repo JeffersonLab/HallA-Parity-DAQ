@@ -1,0 +1,94 @@
+#  I (Bob M) have kept this Makefile here (renamed Makefile_local) for
+# historical reasons.  Should instead "make all" in the parent directory.
+# Note, the "mlongcall" is default.  Oct, 2018.
+#
+#  Build system for scaler readout of SIS3800 and SIS3801 scalers
+#  June 1999
+#  This probably only works on SunOS at the moment
+#
+#  28aug2000   P. King
+#     Adding a Linux case so the Makefile will work under Linux.
+#     Only the PPC version of VxWorks is supported right now.
+#     Only the SIS3800.o and SIS3801.o are made under Linux.
+#
+#  June 10, 2002 J. Liu
+#  Modified to compile STR7200.o under linux
+export OSNAME       := $(shell uname)
+ifeq ($(OSNAME),HP-UX)
+    CFLAGS = -I$(CODA)/HP_UX/include -I.
+    LIBROOT = $(CODA)/HP_UX/lib
+    LIBS =   $(LIBROOT)/libcopy.a $(LIBROOT)/libmsg.a
+    INCFLAGS =
+    SWFLAGS = -DHPVERS 
+    CC = cc -Aa -D_HPUX_SOURCE
+endif
+ifeq ($(OSNAME),SunOS)
+    DDLIBS = $(DD_LIB)/libdd.a /opt/SUNWspro/SC4.2/lib/libmtsk.a
+    CFLAGS = -I$(CODA)/SunOS/include -I.
+    LIBS=  $(DDLIBS) -lm -lc -lsocket -lnsl
+    INCFLAGS=  -I/home/adev/dd2.5/dd/inc
+    SWFLAGS = -DSUNVERS
+    CC = cc -Aa -D_LANGUAGE_C
+    VXDIR=/home/adev/scaler/tornado
+    CCVXFLAGS =  -I$(VXDIR) -DCPU_FAMILY=PPC -DCPU=PPC604
+endif
+ifeq ($(OSNAME),Linux)
+#    CFLAGS  = -I$(CODA)/common/include -I.
+#    LIBROOT = $(CODA)/Linux/lib
+#    INCFLAGS=
+#    SWFLAGS =
+#    CC = cc -Aa -D_LANGUAGE_C
+    INCFLAGS=-fno-for-scope -fno-builtin -fvolatile -fstrength-reduce
+    VXDIR   = /site/vxworks/5.5/ppc/target/h
+    INCS = -Wall $(INCFLAGS) -I. -I$(VXDIR)
+#    CCVXFLAGS =  -I$(VXDIR) -DCPU_FAMILY=PPC -DCPU=PPC604
+    CCVXFLAGS =  -DCPU_FAMILY=PPC -DCPU=PPC604 $(INCS)
+endif
+
+
+ifeq ($(OSNAME),SunOS)
+    all : SIS3801.o SISprod.o SIScons.o SISint.o STR7200.o  
+endif
+ifeq ($(OSNAME),Linux)
+    all : STR7200.o  STR7200_longcall.o
+endif
+
+
+
+STR7200.o: STR7200.c STR7200.h
+	rm -f $@
+	ccppc -c $(CCVXFLAGS) STR7200.c
+
+STR7200_longcall.o: STR7200.c STR7200.h
+	rm -f $@
+	ccppc -c $(CCVXFLAGS) -mlongcall -o $@ STR7200.c
+
+
+SIS3801.o: SIS3801.c SIS3801.h SIS.h
+	rm -f $@
+	ccppc -c $(CCVXFLAGS) SIS3801.c
+
+SISprod.o: SISprod.c
+	rm -f $@
+	ccppc  -c $(CCVXFLAGS) SISprod.c
+
+SIScons.o: SIScons.c SIS.h
+	rm -f $@
+	ccppc  -c $(CCVXFLAGS) SIScons.c
+
+SISint.o: SISint.c
+	rm -f $@
+	ccppc  -c $(CCVXFLAGS) SISint.c
+
+clean : 
+	rm -f *.o
+
+
+
+
+
+
+
+
+
+
