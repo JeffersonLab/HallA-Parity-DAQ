@@ -31,7 +31,7 @@ CC = gcc
 SWFLAGS = -DLINUX
 LIBS = -lieee -ldl -lresolv
 ifdef USE55
-  VXDIR = /adaqfs/halla/a-onl/vxworks/headers/5.5/h
+  VXDIR = /adaqfs/home/adaq/vxworks/headers/5.5/h
 else
   VXDIR = /adaqfs/halla/a-onl/vxworks/headers/5.4/h
 endif
@@ -45,9 +45,11 @@ ifdef PROFILE
   LDFLAGS += -pg
 endif
 
+# We dont use or need 16-bit ADC but we'll need this for a while until we remove
+# some symbol dependencies
 # ADC16 16-bit (while ADC18 18-bit) HAPPEX ADC
 ADC16 = adc16/HAPADC_ch.o adc16/HAPADC_inj.o adc16/HAPADC_lspec.o \
-	adc16/HAPADC_rspec.o  adc16/HAPADC_test.o  adc16/HAPADC_config.o
+       adc16/HAPADC_rspec.o  adc16/HAPADC_test.o  adc16/HAPADC_config.o
 ADC18 = adc18/hapAdc18Test.o adc18/hapAdc18Count.o \
 	adc18/hapAdc18Left.o adc18/hapAdc18Right.o \
 	adc18/hapAdc18Inj.o  adc18/hapAdc18UVa.o
@@ -58,8 +60,8 @@ SOCK =  cfSock/cfSockSer.o cfSock/cfSockCli.o
 SCAN = scan/SCAN_util.o scan/SCAN_config.o
 CAFFB = caFFB/caFFB.o
 AUTO = auto/auto_rhwp.o auto/auto_filter.o auto/auto_led.o auto/auto_led_left.o auto/auto_PITA.o
-FLEXIO = flexio/flexio_lib_ch.o flexio/flexio_lib_rspec.o
-FLEXIO = flexio/flexioLib.o
+FLEXIOK = flexio/KentVers/flexioLib.o
+FLEXIOP = flexio/PaulVers/flexioLib.o
 CAFFB = caFFB/caFFB.o
 VQWK = qweak/vqwk.o qweak/vqwk_32.o qweak/vqwk_32_longcall.o qweak/vqwk_config.o
 GMPROG = config/config
@@ -76,10 +78,11 @@ socket: $(SOCK)
 scan: $(SCAN)
 caFFB: $(CAFFB)
 auto: $(AUTO)
-flexio: $(FLEXIO)
+flexiok: $(FLEXIOK)
+flexiop: $(FLEXIOP)
 vqwk: $(VQWK)
-vxall: $(ADC16) $(ADC18) $(BMW) $(SOCK) $(TB)  $(SCAN) $(CAFFB) $(AUXTB) $(AUTO) $(FLEXIO) $(VQWK) $(SIS3801) $(STR7200) $(TEMPEDMA)
-all:  $(ADC16) $(ADC18) $(BMW) $(SOCK) $(TB) $(SCAN) $(CAFFB) $(GMPROG)  $(AUXTB) $(AUTO) $(FLEXIO) $(VQWK) $(SIS3801) $(STR7200) $(TEMPEDMA)
+vxall: $(ADC16) $(ADC18) $(BMW) $(SOCK) $(TB)  $(SCAN) $(CAFFB) $(AUXTB) $(AUTO) $(FLEXIOK) $(FLEXIOP) $(VQWK) $(SIS3801) $(STR7200) $(TEMPEDMA)
+all: $(ADC16) $(ADC18) $(BMW) $(SOCK) $(TB) $(SCAN) $(CAFFB) $(GMPROG)  $(AUXTB) $(AUTO) $(FLEXIOK) $(FLEXIOP) $(VQWK) $(SIS3801) $(STR7200) $(TEMPEDMA)
 
 version: clean
 	mkdir $(VERS) 
@@ -101,7 +104,8 @@ clean:
 	rm -f scan/core scan/*.o scan/*.d
 	rm -f caFFB/core caFFB/*.o caFFB/*.d
 	rm -f caFFB/core caFFB/*.o caFFB/*.d
-	rm -f flexio/flexioLib.o
+	rm -f flexio/KentVers/flexioLib.o
+	rm -f flexio/PaulVers/flexioLib.o
 	rm -f qweak/*.o
 	rm -f auto/auto_rhwp.o auto/auto_filter.o auto/auto_led.o auto/auto_led_left.o auto/auto_PITA.o
 	rm -f sis3801IntLib/scalIntLib.o sis3801IntLib/scalMsgLib.o
@@ -174,7 +178,7 @@ adc18/hapAdc18Inj.o: adc18/hapAdc18Lib.c adc18/hapAdc18Lib.h
 	rm -f $@
 	ccppc -o $@ $(CCVXFLAGS) -DINJECTOR adc18/hapAdc18Lib.c
 
-bmw/bmwClient.o : bmw/bmwClient.c bmw/bmw.h flexio/flexioLib.h caFFB/caFFB.h
+bmw/bmwClient.o : bmw/bmwClient.c bmw/bmw.h flexio/KentVers/flexioLib.h caFFB/caFFB.h
 	rm -f $@
 	ccppc -o $@ -c $(CCVXFLAGS) bmw/bmwClient.c
 
@@ -186,9 +190,13 @@ bmw/bmw_config.o : bmw/bmw_config.c bmw/bmw_config.h bmw/bmw_cf_commands.h
 	rm -f $@
 	ccppc -o $@ -c $(CCVXFLAGS) bmw/bmw_config.c
 
-flexio/flexioLib.o : flexio/flexioLib.c flexio/flexioLib.h
+flexio/KentVers/flexioLib.o : flexio/KentVers/flexioLib.c flexio/KentVers/flexioLib.h
 	rm -f $@
-	ccppc -o $@ $(CCVXFLAGS) flexio/flexioLib.c
+	ccppc -o $@ $(CCVXFLAGS) flexio/KentVers/flexioLib.c
+
+flexio/PaulVers/flexioLib.o : flexio/PaulVers/flexioLib.c flexio/PaulVers/flexioLib.h
+	rm -f $@
+	ccppc -o $@ $(CCVXFLAGS) flexio/PaulVers/flexioLib.c
 
 cfSock/cfSockCli.o : cfSock/cfSockCli.c cfSock/cfSock.h cfSock/cfSock_types.h
 	rm -f $@
