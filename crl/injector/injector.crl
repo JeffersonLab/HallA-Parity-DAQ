@@ -373,6 +373,7 @@ begin trigger vmetrig
 
 %%
   /* PORT 1 IS OUTPUT, PORT 2 IS INPUT */
+/* Bob M. changed the following two lines on Nov 13, 2018 */
   input_reg  = flexioReadData(2);
   output_reg = flexioReadData(1);
   if (FORCE_SOFTWARE_HMINUS == 1) {
