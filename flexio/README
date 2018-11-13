@@ -1,0 +1,13 @@
+FLEXIO library
+
+Noted, R. Michaels  Nov 2018
+
+We have, unfortunately, two incompatible versions.
+
+./KentVers -- used by Prex_ts.crl and BMW
+
+./PaulVers -- used by injector.crl
+
+Symbolic links to KentVers for BMW which points here
+for the headers.
+
