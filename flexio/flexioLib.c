@@ -24,6 +24,8 @@
 
 IMPORT  STATUS sysBusToLocalAdrs(int, char *, char **);
 
+int flexioDebug = FALSE;
+
 volatile struct flexio_struct *flexp;
 
 
@@ -37,7 +39,6 @@ volatile struct flexio_struct *flexp;
 STATUS flexioInit (UINT32 addr)
 {
   int res, errFlag = 0;
-  int idblock1, idblock2;
   unsigned long laddr;
 
   /* get the FlexIO's address */
@@ -64,45 +65,7 @@ STATUS flexioInit (UINT32 addr)
       printf("Initialized FlexIO at address 0x%08x \n",(UINT32) flexp);
     }
   }  
-
-  flexio_input_card = 0;
-  flexio_output_card = 0;
-  idblock1 = 0;
-  idblock2 = 0;
-  idblock1 = (flexp->csr1 & FLEXIO_CSR_ID_MASK)>>FLEXIO_CSR_ID_OFFSET;
-  idblock2 = (flexp->csr2 & FLEXIO_CSR_ID_MASK)>>FLEXIO_CSR_ID_OFFSET;    
-
-  if (idblock1 == FLEXIO_ID_EMPTY) {
-    printf("flexioInit: INFO: port number 1 is empty.\n");
-  }
-  if (idblock2 == FLEXIO_ID_EMPTY) {
-    printf("flexioInit: INFO: port number 2 is empty.\n");
-  }
-
-  if (idblock1 == FLEXIO_ID_INPUT) {
-    flexio_input_card = 1;
-    if (idblock1 == FLEXIO_ID_INPUT) {
-      printf("flexioInit: INFO: 2 input cards.  Standard READ  call addresses card 1 only\n");
-    }
-  } else if (idblock2 == FLEXIO_ID_INPUT) {
-    flexio_input_card = 2;
-  } else {
-    printf("flexioInit: INFO: No input cards. Standard READ call will fail.\n");
-  }
-
-  if (idblock1 == FLEXIO_ID_OUTPUT) {
-    flexio_output_card = 1;
-    if (idblock1 == FLEXIO_ID_OUTPUT) {
-      printf("flexioInit: INFO: 2 output cards.  Standard WRITE  call addresses card 1 only\n");
-    }
-  } else if (idblock2 == FLEXIO_ID_OUTPUT) {
-    flexio_output_card = 2;
-  } else {
-    printf("flexioInit: INFO: No output cards. Standard WRITE  call will fail.\n");
-  }
     
-  flexioSetDebug(0); // no verbose required by DAQ, I think.
-
   if(errFlag > 0) {
     printf("flexioInit: ERROR: Unable to initialize FlexIO \n");
     return(ERROR);
@@ -174,7 +137,6 @@ void flexioPrintID(int portnum)
     return;
     break;
   }
-
 }
 
 /******************************************************************************
@@ -197,50 +159,28 @@ STATUS flexioCheckID(int portnum, int porttype)
     idblock = (flexp->csr2 & FLEXIO_CSR_ID_MASK)>>FLEXIO_CSR_ID_OFFSET;    
     break;
   default:
-    if (flexioDebug) 
-      printf("flexioCheckID: ERROR: port # %d is invalid, must be 1 or 2 \n",
+    printf("flexioCheckID: ERROR: port # %d is invalid, must be 1 or 2 \n",
 	   portnum);
     return(ERROR);
     break;
   }
-  
+
+  if(idblock==porttype) {
+    return(OK);
+  } else {
+    return(ERROR);
+  }
 }
 
 /******************************************************************************
  *  flexioReadData
  */
-int flexioReadData()
-{
-  int datablock;
-  int portnum;
-
-  if(flexp == NULL) {
-    if (flexioDebug) 
-      if (flexioDebug) 
-	printf("flexioReadData: ERROR : Flex IO board not initialized \n");
-    return(-1);
-  }
-  if(flexio_input_card==0) {
-    if (flexioDebug) 
-      printf("flexioReadData: ERROR : Flex IO board has no input card\n");
-    return(-1);
-  }
-  portnum = flexio_input_card;
-
-  return(flexioReadDataCard(portnum));
-
-}
-
-/******************************************************************************
- *  flexioReadDataCard
- */
-int flexioReadDataCard(int portnum)
+int flexioReadData(int portnum)
 {
   int datablock;
 
   if(flexp == NULL) {
-    if (flexioDebug) 
-      printf("flexioReadDataCard: ERROR : Flex IO board not initialized \n");
+    printf("flexioReadData: ERROR : Flex IO board not initialized \n");
     return(-1);
   }
 
@@ -248,21 +188,20 @@ int flexioReadDataCard(int portnum)
   switch (portnum){
   case 1:
     if(flexioDebug)
-      printf("flexioReadDataCard: INFO: flexp->data1 = 0x%04x\n",flexp->data1);
+      printf("flexioReadData: INFO: flexp->data1 = 0x%04x\n",flexp->data1);
     datablock = flexp->data1;
     if (flexioCheckID(portnum,FLEXIO_ID_INPUT)==OK &&
 	flexioIsExtLatch(portnum)==OK) flexioEnableInputLatch(portnum);
     break;
   case 2:
     if(flexioDebug)
-      printf("flexioReadDataCard: INFO: flexp->data2 = 0x%04x\n",flexp->data2);
+      printf("flexioReadData: INFO: flexp->data2 = 0x%04x\n",flexp->data2);
     datablock = flexp->data2;
     if (flexioCheckID(portnum,FLEXIO_ID_INPUT)==OK &&
 	flexioIsExtLatch(portnum)==OK) flexioEnableInputLatch(portnum);
     break;
   default:
-    if (flexioDebug) 
-      printf("flexioReadDataCard: ERROR: port number %d is invalid, must be 1 or 2 \n",
+    printf("flexioReadData: ERROR: port number %d is invalid, must be 1 or 2 \n",
 	   portnum);
     break;
   }
@@ -273,71 +212,23 @@ int flexioReadDataCard(int portnum)
 /******************************************************************************
  *  flexioWriteData
  */
-int flexioWriteData(int writedata)
-{
-  int readdata;
-  int portnum;
-
-  if(flexp == NULL) {
-    if (flexioDebug) printf("flexioWriteData: ERROR : Flex IO board not initialized \n");
-    return(-1);
-  }
-  if(flexio_output_card==0) {
-    if (flexioDebug) printf("flexioReadData: ERROR : Flex IO board has no output card\n");
-    return(-1);
-  }
-  portnum = flexio_output_card;
-
-  return( flexioWriteDataCard(portnum, writedata) );
-
-}
-
-/******************************************************************************
- *  flexioGetOutput
- */
-int flexioGetOutput()
-{
-  int readdata;
-  int portnum;
-
-  
-  if(flexp == NULL) {
-    if (flexioDebug) printf("flexioGetOutput: ERROR : Flex IO board not initialized \n");
-    return(-1);
-  }
-  if(flexio_output_card==0) {
-    if (flexioDebug) printf("flexioGetOutput: ERROR : Flex IO board has no output card\n");
-    return(-1);
-  }
-  portnum = flexio_output_card;
-  readdata = flexioReadDataCard(portnum);
-
-  return( readdata );
-
-}
-
-/******************************************************************************
- *  flexioWriteDataCard
- */
-int flexioWriteDataCard(int portnum, int writedata)
+int flexioWriteData(int portnum, int writedata)
 {
   int readdata;
 
   if(flexp == NULL) {
-    if (flexioDebug) 
-      printf("flexioWriteDataCard: ERROR : Flex IO board not initialized \n");
+    printf("flexioWriteData: ERROR : Flex IO board not initialized \n");
     return(-1);
   }
 
   if(flexioCheckID(portnum,FLEXIO_ID_OUTPUT)==ERROR) {
-    if (flexioDebug) 
-      printf("flexioWriteDataCard: ERROR : Port %d is not an output port.\n",
+    printf("flexioWriteData: ERROR : Port %d is not an output port.\n",
 	   portnum);
     return(-1);
   }
   
   if(flexioDebug)
-    printf("flexioWriteDataCard: INFO: Writing 0x%04x to port %d\n",
+    printf("flexioWriteData: INFO: Writing 0x%04x to port %d\n",
 	   writedata, portnum);
  
   switch (portnum){
@@ -348,214 +239,137 @@ int flexioWriteDataCard(int portnum, int writedata)
     flexp->data2 = writedata;
     break;
   default:
-    if (flexioDebug) 
-      printf("flexioWriteDataCard: ERROR: port # %d is invalid, must be 1 or 2 \n",
+    printf("flexioWriteData: ERROR: port # %d is invalid, must be 1 or 2 \n",
 	   portnum);
     break;
   }
 
-  readdata = flexioReadDataCard(portnum);
+  readdata = flexioReadData(portnum);
 
   return(readdata);
 }
 
 /******************************************************************************
- *  flexioToggleData
+ *  flexioWriteMaskCard
  */
-int flexioToggleData( int bitpattern)
+int flexioWriteMaskCard(int portnum, int value, int bitpattern)
 {
-  int portnum;
-  int writedata;
-
-  if(flexp == NULL) {
-    if (flexioDebug) printf("flexioToggleData: ERROR : Flex IO board not initialized \n");
-    return(-1);
-  }
-  if(flexio_output_card==0) {
-    if (flexioDebug) printf("flexioToggleData: ERROR : Flex IO board has no output card\n");
-    return(-1);
-  }
-  portnum = flexio_output_card;
-
-  return( flexioToggleDataCard(portnum, bitpattern) );
-
+  int retval;
+  if (value==0) retval = flexioUnsetDataMask(portnum, bitpattern);
+  else          retval = flexioSetDataMask(portnum, bitpattern);
+  return retval;
 }
 
 /******************************************************************************
- *  flexioToggleDataCard
+ *  flexioSetDataMask
  */
-int flexioToggleDataCard(int portnum, int bitpattern)
+int flexioSetDataMask(int portnum, int bitpattern)
 {
   int readdata;
   int writedata;
 
   if(flexp == NULL) {
-    if (flexioDebug) 
-      printf("flexioToggleData: ERROR : Flex IO board not initialized \n");
+    printf("flexioSetDataMask: ERROR : Flex IO board not initialized \n");
     return(-1);
   }
 
   if(flexioCheckID(portnum,FLEXIO_ID_OUTPUT)==ERROR) {
-    if (flexioDebug) 
-      printf("flexioToggleData: ERROR : Port %d is not an output port.\n",
+    printf("flexioSetDataMask: ERROR : Port %d is not an output port.\n",
 	   portnum);
     return(-1);
   } else {
-    readdata   = flexioReadDataCard(portnum);
+    readdata   = flexioReadData(portnum);
     //    writedata  = (readdata | bitpattern) - (readdata & bitpattern);
-    writedata  = (readdata ^ bitpattern);
-    readdata   = flexioWriteDataCard(portnum,writedata);
+    writedata  = (readdata | bitpattern);
+    readdata   = flexioWriteData(portnum,writedata);
+    
+    return(readdata);
+  }
+};
+
+/******************************************************************************
+ *  flexioUnsetDataMask
+ */
+int flexioUnsetDataMask(int portnum, int bitpattern)
+{
+  int readdata;
+  int writedata;
+
+  if(flexp == NULL) {
+    printf("flexioUnsetDataMask: ERROR : Flex IO board not initialized \n");
+    return(-1);
+  }
+
+  if(flexioCheckID(portnum,FLEXIO_ID_OUTPUT)==ERROR) {
+    printf("flexioUnsetDataMask: ERROR : Port %d is not an output port.\n",
+	   portnum);
+    return(-1);
+  } else {
+    readdata   = flexioReadData(portnum);
+    //    writedata  = (readdata | bitpattern) - (readdata & bitpattern);
+    writedata   = (readdata | bitpattern);
+    writedata  ^= bitpattern;
+    readdata    = flexioWriteData(portnum,writedata);
     
     return(readdata);
   }
 }
 
 /******************************************************************************
- *  flexioGetOutputBit
+ *  flexioToggleData
  */
-int flexioGetOutputBit(int bitloc)
-{
-  int portnum;
-
-  if(flexp == NULL) {
-    if (flexioDebug) printf("flexioGetOutputBit: ERROR : Flex IO board not initialized \n");
-    return(-1);
-  }
-  if(flexio_output_card==0) {
-    if (flexioDebug) printf("flexioGetOutputBit: ERROR : Flex IO board has no output card\n");
-    return(-1);
-  }
-  portnum = flexio_output_card;
-
-  return( flexioGetBitCard(portnum, bitloc) );
-
-}
-
-/******************************************************************************
- *  flexioGetBitCard
- */
-int flexioGetBitCard(int portnum, int bitloc)
-{
-  int readdata;
-  int readbit;
-  int bitmask;
-
-  bitmask = 0x1 << (bitloc-1);
-
-  if(flexp == NULL) {
-    if (flexioDebug) 
-      printf("flexioGetOutputBit: ERROR : Flex IO board not initialized \n");
-    return(-1);
-  }
-
-  readdata   = flexioReadDataCard(portnum);
-  readbit = (readdata & bitmask) >> (bitloc-1);
-    
-  return(readbit);
-}
-
-
-
-/******************************************************************************
- *  flexioWriteChan
- */
-int flexioWriteChan(int newbit, int chan)
-{
-  int portnum;
-  int mask;
-
-  if(flexp == NULL) {
-    if (flexioDebug) printf("flexioWriteMask: ERROR : Flex IO board not initialized \n");
-    return(-1);
-  }
-  if(flexio_output_card==0) {
-    if (flexioDebug) printf("flexioWriteMask: ERROR : Flex IO board has no output card\n");
-    return(-1);
-  }
-  mask = 0;
-  //if (chan>0 && chan<=16)  mask = pow(2,chan-1); Bryan Moffit spotted a roblem with using pow(#,#). pow(#,#) always returned 33! See HALOG Entry Num 285859 for details. 
-
-  if (chan>0 && chan<=16)  mask = 1<<(chan-1);    
-  
-  portnum = flexio_output_card;
-
-  return( flexioWriteMaskCard(portnum, newbit, mask) );
-
-}
-
-/******************************************************************************
- *  flexioWriteMask
- */
-int flexioWriteMask(int newbit, int bitpattern)
-{
-  int portnum;
-  int writedata;
-
-  if(flexp == NULL) {
-    if (flexioDebug) printf("flexioWriteMask: ERROR : Flex IO board not initialized \n");
-    return(-1);
-  }
-  if(flexio_output_card==0) {
-    if (flexioDebug) printf("flexioWriteMask: ERROR : Flex IO board has no output card\n");
-    return(-1);
-  }
-  portnum = flexio_output_card;
-
-  return( flexioWriteMaskCard(portnum, newbit, bitpattern) );
-
-}
-
-/******************************************************************************
- *  flexioWriteMaskCard
- */
-int flexioWriteMaskCard(int portnum, int newbit, int bitpattern)
+int flexioToggleData(int portnum, int bitpattern)
 {
   int readdata;
   int writedata;
-  int compmask;
 
   if(flexp == NULL) {
-    if (flexioDebug) 
-      printf("flexioWriteMask: ERROR : Flex IO board not initialized \n");
+    printf("flexioToggleData: ERROR : Flex IO board not initialized \n");
     return(-1);
   }
 
   if(flexioCheckID(portnum,FLEXIO_ID_OUTPUT)==ERROR) {
-    if (flexioDebug) 
-      printf("flexioWriteMask: ERROR : Port %d is not an output port.\n",
+    printf("flexioToggleData: ERROR : Port %d is not an output port.\n",
 	   portnum);
+    return(-1);
+  } else {
+    readdata   = flexioReadData(portnum);
+    //    writedata  = (readdata | bitpattern) - (readdata & bitpattern);
+    writedata  = (readdata ^ bitpattern);
+    readdata   = flexioWriteData(portnum,writedata);
+    
+    return(readdata);
+  }
+}
+
+/******************************************************************************
+ *  flexioWriteChan
+ */
+int flexioWriteChan(int value, int bitposition)
+{
+  int readdata;
+  int mask;
+  int retval;
+  int portnum = 1;
+
+  if(flexp == NULL) {
+    printf("flexioWriteChan: ERROR : Flex IO board not initialized \n");
     return(-1);
   }
 
-  readdata   = flexioReadDataCard(portnum);
-  if (newbit) {
-    writedata = readdata | bitpattern;
+  if(flexioCheckID(portnum ,FLEXIO_ID_OUTPUT)==ERROR) portnum++;
+  if(flexioCheckID(portnum,FLEXIO_ID_OUTPUT)==ERROR) {
+    printf("flexioWriteChan: ERROR : Port %d is not an output port.\n",
+	   portnum);
+    return(-1);
   } else {
-    compmask = 0xff ^ bitpattern;
-    writedata = readdata & compmask;
+    mask = 0;
+    if (bitposition>0 && bitposition<=16)  mask = 1<<(bitposition-1);    
+    retval = flexioWriteMaskCard(portnum, value, mask);
   }
-  
-  readdata   = flexioWriteDataCard(portnum,writedata);
-  
-  return(readdata);
-
+  return retval;
 }
 
-
-/******************************************************************************
- *  flexioSetDebug
- *    simply sets vxworks flag for output from otherwise quiet routines
- *    some routines must be quiet by default for DAQ
- */
-STATUS flexioSetDebug(int flag)
-{
-  if (flag==1) {
-    flexioDebug=1;
-  }  else {
-    flexioDebug=0;
-  }
-  return(flexioDebug);
-}
 
 
 /******************************************************************************

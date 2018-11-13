@@ -7,7 +7,6 @@
  *  Author: Paul King
  *          University of Maryland / TJNAF G0 Collaboration
  *          March 2001
- *  Modified KDP 8/09 for easy general read/write for one each in/out card.
  *
  *  Revision 1.0 - Initial revision.
  */
@@ -49,9 +48,7 @@ typedef struct flexio_struct {
 #define FLEXIO_ID_INPUT        2
 #define FLEXIO_ID_EMPTY        3
 
-LOCAL int flexio_output_card;
-LOCAL int flexio_input_card;
-LOCAL int flexioDebug;
+
 
 /* Function Prototypes */
 STATUS flexioInit (UINT32 addr);
@@ -60,20 +57,16 @@ void flexioPrintStatus();
 void flexioPrintID();
 
 STATUS flexioCheckID(int portnum, int porttype);
-int flexioReadDataCard(int portnum);
-int flexioWriteDataCard(int portnum, int writedata);
-int flexioToggleDataCard(int portnum, int bitpattern);
-int flexioGetBitCard(int portnum, int bitoffset);
-int flexioWriteMaskCard(int portnum, int newbit, int bitpattern);
-int flexioReadData();
-int flexioGetOutput();
-int flexioGetOutputBit(int bitoffset);
-int flexioWriteData(int writedata);
-int flexioWriteChan(int newbit, int chan);
-int flexioWriteMask(int newbit, int bitpattern);
-int flexioToggleData(int bitpattern);
+int flexioReadData(int portnum);
+int flexioWriteData(int portnum, int writedata);
 
-STATUS flexioSetDebug(int flag);
+int flexioWriteMaskCard(int portnum, int value, int bitpattern);
+int flexioSetDataMask(int portnum, int bitpattern);
+int flexioUnsetDataMask(int portnum, int bitpattern);
+int flexioToggleData(int portnum, int bitpattern);
+
+int flexioWriteChan(int value, int bitposition);
+
 STATUS flexioSetOutputMode(int portnum, int outputmode);
 STATUS flexioEnableInputLatch(int portnum);
 STATUS flexioIsExtLatch(int portnum);
