@@ -1,0 +1,2 @@
+Source "Setup.csh" before you try to recompile the object files against
+CODA 2.5 and VxWorks 5.5.
