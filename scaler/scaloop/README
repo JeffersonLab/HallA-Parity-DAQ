@@ -1,0 +1,59 @@
+
+
+   Scheme to flush read PVDIS scalers online with or without CODA
+   ===============================================================
+
+   R. Michaels,  Sept 30, 2009
+
+  The PVDIS scalers can be read with a primitive TCP/IP 
+  client/server.  These are in  ~/devices/pvdis/onlineL and onlineR
+  for the Left and Right HRS.
+
+  Go there and type 
+
+          ./scread              (this obtains counts)
+
+  or 
+
+          ./scread -r           (this obtains rates)
+
+   In order to read the scalers in between runs, we wrote a 
+   simple VME task called scaloop (in this directory).
+   The object code is loaded and the task spawned in
+   ~/vxworks/pvdiss1.boot  and pvdis2.boot for the R and L HRS.
+
+   The way scaloop works:
+
+       It looks at the flag coda_run_flag which is set in
+   the CRL routine.  If coda_run_flag==1 then CODA is running
+   and the scaler FIFOs are flushed and put into global memory.
+   If coda_run_flag==0 then scaloop does this flushing instead.
+   It is important that scaloop does NOT flush when CODA is
+   running.  This could ruin our data !  
+        You can tell its working because at the VME prompt,
+   every 20 sec you'll see a friendly printout which is either
+
+     -> scaloop: local flush of FIFO (its ok) 
+
+   or
+
+     -> scaloop: FIFO flush by CODA (its ok)
+
+   The former is when coda_run_flag==0.
+
+
+Appendix about xscaler
+
+  Further, the scalers can be read by "xscaler" (still under
+  development):  cd ~apar/scaler/xscaler and see the README
+  file there.  Basically
+
+           ./xscaler Left  
+
+   or
+
+           ./xscaler Right
+
+   and the GUI is controlled by scaler.map.
+
+   
