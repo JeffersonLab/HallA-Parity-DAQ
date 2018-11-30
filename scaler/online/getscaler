@@ -1,0 +1,15 @@
+#!/bin/bash
+
+echo "Getting scalers every 10 sec (cleared each time)"
+echo " "
+
+while [ 1 = 1 ]  ; do
+
+   echo " "
+   echo "Next pair of readings at `date`"
+   echo " "
+   ./scread -c ; ./scread ; sleep 10 ; ./scread
+   echo " "
+   echo "---------------------------------------------------------------------"
+
+done

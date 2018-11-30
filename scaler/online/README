@@ -1,0 +1,7 @@
+  In this directory is the client/server used for scalers either
+  as a 3800 mode or 3801 mode.
+
+  scaser.c   == server (runs on VME crate)
+  scacli.c   == client (runs on Linux)
+
+ 

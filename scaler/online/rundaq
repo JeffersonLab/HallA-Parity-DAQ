@@ -1,0 +1,18 @@
+#!/bin/bash
+# Run the DAQ.  
+# Argument $1, if it exists, is run number
+
+run=0
+if [ $# -eq 1 ] ; then
+  run=$1
+fi
+echo "run number $run"
+
+while [ 1 = 1 ] ; do
+
+#   ./scread -p -r $run 
+#   ./scread -p -r $run -s -f run_${run}.dat
+   ./scread -p -b -r $run -s -f run_${run}.dat
+   sleep 5
+
+done
