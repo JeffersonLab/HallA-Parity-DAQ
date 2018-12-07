@@ -13,6 +13,10 @@
 #      3. In trigger routine partrig
 #         (i) First event does "soft_reset" and "go"
 #        (ii) If data available, flag event but do NOT flush buffer.
+#
+#   Nov 2018 ... R. Michaels .... throw out the ADC16
+#                        put different parts of the readout into BANKS
+#
 #############
 #
 # Modifications to add VQWK integration ADCs (Qweak) Rakitha Beminiwattha Thu Feb 12 14:29:32 EST 2015d Tue Aug 18 16:42:15 EDT 2015                    
@@ -20,12 +24,22 @@
 #############  
   
 readout list VME1
-maximum 8192,20000
+# max event size is ~1700 bytes in CH crate.
+maximum 8192,2000
 vme readout
 ts control
 
 variable READOUT_VQWK
 variable firstEvents
+
+const BANK1 = 0x01
+const BANK2 = 0x02
+const BANK3 = 0x03
+const BANK4 = 0x04
+const BANK5 = 0x05
+const BANK6 = 0x06
+const BANK7 = 0x07
+
 
 /* VQWK ADC parameters */
 const  VQWK_SAMPLE_PERIOD   =   0
@@ -39,6 +53,7 @@ const VQWK_NUM_BLOCKS   =   4
 /* 480 Hz ......243*/
 /* 960 Hz ..... 110 */
 const VQWK_SAMP_PER_BLOCK = 4141
+/*4141*/
 const VQWK_GATE_DELAY = 10
 
 const  VQWK_INT_GATE_FREQ = 0
@@ -118,7 +133,7 @@ static int conv_gain[MAXNUMADC18],int_gain[MAXNUMADC18];
 int oport_state=0;   /* output port state (global variable) */
 
 static int noscaler, scaler2, bmwscan, tbreadout, evtypefix, flexio, flexio2;
-static int qweakadc, adc18bit, numadc18, adc16bit, mtread, rampdac12;
+static int qweakadc, adc18bit, numadc18, rampdac12;
 static int autoled, lefthrs, righthrs, counthouse;
 
 unsigned short ranny[RANDNUM];  /* array of random integers */
@@ -191,7 +206,7 @@ begin download
 init_strings();
 
 noscaler=0;scaler2=0;bmwscan=0;tbreadout=0;evtypefix=0;flexio=0,flexio2=0;
-qweakadc=0; adc18bit=0;adc16bit=0;mtread=0;rampdac12=0; autoled=0; 
+qweakadc=0; adc18bit=0;rampdac12=0; autoled=0; 
 lefthrs=0; righthrs=0;
 counthouse=0;
 noscaler  = getflag(NOSCALER);   /* No scaler used for this crate */
@@ -203,8 +218,6 @@ flexio    = getflag(FLEXIO);     /* Readout Flexible I/O Module */
 flexio2   = getflag(FLEXIO2);    /* Readout Flexible I/O Module */
 qweakadc  = getflag(QWEAKADC);   /* to use Qweak ADCs (1) or not (0) */
 adc18bit  = getflag(ADC18BIT);   /* 18-bit ADC tests  */
-adc16bit  = getflag(ADC16BIT);   /* 16-bit ADC exists(1) or not(0)   */
-mtread    = getflag(MTREAD);     /* Empty readout ?  (1).  For tests */
 rampdac12 = getflag(RAMPDAC12);  /* To ramp the 12-bit DAC */
 autoled   = getflag(AUTOLED);    /* for LED linearity tests in HRS crates */
 lefthrs   = getflag(LEFTHRS);    /*  just so you know you are on the left arm */
@@ -227,9 +240,6 @@ if (qweakadc) {
 }
 if (adc18bit) {
   printf("Will use 18-bit ADC \n");
-} 
-if (adc16bit) {
-  printf("Will use 16-bit ADC \n");
 } 
 if(noscaler == 0) {
   printf("WILL readout scaler: %d\n",noscaler);
@@ -326,11 +336,6 @@ if(flexio2 == 1) {
   flex_io->csr2 = 0x3;    /* Enable External Strobe and Latch Mode */
 }
 
-/* ADC16 Configuration */
-// show default configurations
-  if (adc16bit) {
-    showHAPADC(-1);
-  }
 
 
 if(noscaler == 0) {
@@ -467,34 +472,6 @@ log inform "Entering User Prestart"
 
 
 /*******************************************************/
-
-/* Fill Random Integer Array 
-   Do this during prestart, so that each run has a different ranny array*/
-
-if (adc16bit) {
-  printf("Generating Random Integer Array\n");
-  printf("Number of Array elements = %d\n",RANDNUM);
-  srand(ncnt);  /* seed random number generator with the event counter */
-  bad_randmake=0;
-  for (j=0;j<RANDNUM;j++) {
-    /* Generate random integers from 2048 to 63488 */
-    tmp_rand = (unsigned short) (61440.0*rand()/(32768+1.0));
-    while(tmp_rand==0 || tmp_rand==-1) {
-      bad_randmake=1;
-      tmp_rand = (unsigned short) (61440.0*rand()/(32768+1.0));
-    }
-    ranny[j] = 2048 + tmp_rand;
-  }
-
-  if(bad_randmake==1) {
-    int badfile;
-  
-    badfile=fopen("~apar/bryan/badrand/badrand.hist","a");
-    fprintf(badfile,"Another bad random number generation at ncnt=%d\n",
-	  ncnt);
-    fclose(badfile);
-  }
-}
 
   if(tbreadout==1) {
     /* Send timing board information to ~apar/db/timebrd/timebrd.cfg */
@@ -887,17 +864,18 @@ iocTime = vxTicks;
 %%
 
 rol->dabufp = (long *)0;
-open event type EVTYPE of BT_UI4
+open event type EVTYPE of BT_BANK
+
+open bank BANK1 of BT_UI4
 
 *rol->dabufp++ = 0xffb0b444;    
 
 %%
 
-if ( !mtread )  {
 
 ncnt++;
 
-// Read out TIR inputs FIRST!  It contains helicity info. 
+// Read out TIR and flexio
 *rol->dabufp++ = 0xffdaf000;    /* Header for TIR */
 if(flexio==1) {
   *rol->dabufp++ = flex_io->data1;
@@ -916,6 +894,13 @@ if(flexio==1) {
   tirdata = tir[1]->tir_iport;
   *rol->dabufp++ = tirdata & 0xfff;
 }
+
+%%
+close bank
+
+# this will be scaler data
+open bank BANK2 of BT_UI4
+%%
 
 #ifdef BMWSTUFF//FIXME
 if(bmwscan==1) {
@@ -1022,6 +1007,12 @@ if(noscaler == 0) {
 
  unset_tir_oport(OPORT_SCALER);
 
+%%
+close bank
+# 18-bit HAPPEX ADCs
+open bank BANK3 of BT_UI4
+%%
+
  if (adc18bit) {  /* read out the 18-bit ADCs.  */
 
    set_tir_oport(OPORT_HAPADC);
@@ -1126,15 +1117,12 @@ cont1:
 
  }  /* end of 18-bit ADC */
  
+%%
+close bank
+# "kitchen sink", timeing board, bmw stuff, etc.
+open bank BANK4 of BT_UI4
+%%
  
- if (adc16bit) {
-   
-   *rol->dabufp++ = 0xffadc000 + ADC_NUMSLOTS;   /* Header for ADC */  
-   
-   for (i=0; i < ADC_NUMSLOTS; i++) rol->dabufp = readoutHAPADC(rol->dabufp,i);
-   
- }
-
 *rol->dabufp++ = 0xfffbd000;    /*  Header for timing board info */
 *rol->dabufp++ = getDataHAPTB();
 *rol->dabufp++ = getRampDelayHAPTB();
@@ -1163,31 +1151,6 @@ if(bmwscan==1) {
   *rol->dabufp++ = ncnt;
 }
 //#endif//FIXME
-
-if (adc16bit) {
-  for (i = 0; i < ADC_NUMSLOTS; i++) {  
-    if (usesDACHAPADC(i)==1) {
-    // lookup table of random numbers
-    rannum = ranny[rannyint];   /* rand goes from 0 to 32768 */
-    rannyint++;
-    if (rannyint>RANDNUM-1) rannyint=0;
-    
-    setDACHAPADC(i,rannum);
-  
-    // alternate methods of choosing dac noise values
-    //
-    //       rannum = 2048 + rand();   /* rand goes from 0 to 32768 */
-    //
-    //        if (rannum % 2 == 0){
-    //          dac_count[i] = 5000;
-    //        } else {
-    //          dac_count[i] = 60000;
-    //        }             
-    //
-  }
- }
-}  /* if (adc16bit) block */
-
 
 // This is for tests using tboard dac
 
@@ -1271,8 +1234,12 @@ if(getOverSampleCurrentHAPTB()==0) {
     setDACHAPTB(2,dac16val);
 
   }
-// actual end of "!mtread if {"
 %%
+
+close bank
+# VQWK ADCs
+open bank BANK5 of BT_UI4
+
 # start VQWK data
 
 if READOUT_VQWK is equal to 1 then
@@ -1362,10 +1329,10 @@ end if
   }
 */
 
-}  /* matches   "if ( !mtread )  {"   */
 
 %%
 
+close bank
 close event
 
 sysTempeVeatClear(0); /* needed for the 6100 board */
