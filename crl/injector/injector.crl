@@ -23,6 +23,16 @@ const TIR_ADDR             = hex 0ed0
 const REALLY_READOUT_BEAM_SCALERS = 1
 const REALLY_READOUT_VQWK         = 1
 const FORCE_SOFTWARE_HMINUS       = 0
+
+const BANK1 = 0x01
+const BANK2 = 0x02
+const BANK3 = 0x03
+const BANK4 = 0x04
+const BANK5 = 0x05
+const BANK6 = 0x06
+const BANK7 = 0x07
+
+
 variable READOUT_BEAM_SCALERS
 variable READOUT_VQWK
 
@@ -373,7 +383,6 @@ begin trigger vmetrig
 
 %%
   /* PORT 1 IS OUTPUT, PORT 2 IS INPUT */
-/* Bob M. changed the following two lines on Nov 13, 2018 */
   input_reg  = flexioReadData(2);
   output_reg = flexioReadData(1);
   if (FORCE_SOFTWARE_HMINUS == 1) {
@@ -394,7 +403,10 @@ begin trigger vmetrig
 %%
   rol->dabufp = (long *)0;
 
-  open event type EVTYPE of BT_UI4
+  open event type EVTYPE of BT_BANK
+
+# SCAN data, scaler data.
+  open bank BANK1 of BT_UI4
 
   *rol->dabufp++ = 0xffb0b444;    /* Header for the event */
 
@@ -429,6 +441,11 @@ begin trigger vmetrig
 %%
       
     end if
+
+close bank
+
+# this will be VQWK data
+open bank BANK2 of BT_UI4
 
     if READOUT_VQWK is equal to 1 then
       *rol->dabufp++ = VQWK_BTYPE; /* Header for VQWK */
@@ -518,6 +535,11 @@ begin trigger vmetrig
       
     end if
 
+close bank
+
+# this will be helicity, I/O register, eventscaler, and more SCAN data
+open bank BANK3 of BT_UI4
+
     *rol->dabufp++ = HEL_BTYPE;
 %%
       int id=0;
@@ -546,6 +568,7 @@ begin trigger vmetrig
       }
 %%
     
+  close bank
   close event
 
 end trigger
