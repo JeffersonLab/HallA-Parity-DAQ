@@ -81,7 +81,7 @@ STATUS flexioInit (UINT32 addr)
 
   if (idblock1 == FLEXIO_ID_INPUT) {
     flexio_input_card = 1;
-    if (idblock1 == FLEXIO_ID_INPUT) {
+    if (idblock2 == FLEXIO_ID_INPUT) {
       printf("flexioInit: INFO: 2 input cards.  Standard READ  call addresses card 1 only\n");
     }
   } else if (idblock2 == FLEXIO_ID_INPUT) {
@@ -92,7 +92,7 @@ STATUS flexioInit (UINT32 addr)
 
   if (idblock1 == FLEXIO_ID_OUTPUT) {
     flexio_output_card = 1;
-    if (idblock1 == FLEXIO_ID_OUTPUT) {
+    if (idblock2 == FLEXIO_ID_OUTPUT) {
       printf("flexioInit: INFO: 2 output cards.  Standard WRITE  call addresses card 1 only\n");
     }
   } else if (idblock2 == FLEXIO_ID_OUTPUT) {
@@ -102,6 +102,10 @@ STATUS flexioInit (UINT32 addr)
   }
     
   flexioSetDebug(0); // no verbose required by DAQ, I think.
+
+  /* Print where we are */ 
+  flexioPrintID(1);
+  flexioPrintID(2);
 
   if(errFlag > 0) {
     printf("flexioInit: ERROR: Unable to initialize FlexIO \n");
