@@ -12,7 +12,7 @@ from ctypes import cdll
 
 class VQWK(tk.Frame):
   def __init__(self, tab):
-    self.lib = cdll.LoadLibrary('./libGVQWK.so')
+    self.lib = cdll.LoadLibrary('./libs/libGVQWK.so')
     self.obj = self.lib.init(4141, 10, 4, 496, 10, 4)
 
     self.ch_frame = tk.LabelFrame(tab, text='CH', background=u.green_color, width=500)

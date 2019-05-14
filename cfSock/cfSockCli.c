@@ -158,18 +158,17 @@ int cfSockCli (
        * next recv at the top of the loop will start at
        * the beginning of the next reply.
        */
-      while ( i < sizeof(*serverReply) ) {
+  while ( i < sizeof(*serverReply) ) {
 	j = recv( sFd, ((char *) serverReply)+i, sizeof(*serverReply)-i, 0 );
-	if ( j == SOCK_ERROR ) 
-	  {
-	    perror ("Error reading result\n");
-	    close(sFd);
-	    return (SOCK_ERROR);
-	  }
+	if( j == SOCK_ERROR ){
+	  perror ("Error reading result\n");
+	  close(sFd);
+	  return (SOCK_ERROR);
+	}
 	i += j;
-      }
-      //      handleReplyInteractive(serverReply);
-    }
+  }
+  //handleReplyInteractive(serverReply);
+}
   
   close (sFd);
   return (SOCK_OK);
@@ -268,7 +267,11 @@ int cfSockCommand(int crate_number,
   }
   return errFlag;
 }
-
+/**
+  DEPRECATED: 2019-05-13, replaced with GMSockCommand which
+  takes no structs as arguments, making it callable from
+  Python 3.
+**/
 int GreenSockCommand(int crate_number, struct greenRequest *gRequest)
 {
   struct request myRequest;     // request to send to server 
@@ -335,6 +338,73 @@ int GreenSockCommand(int crate_number, struct greenRequest *gRequest)
   return errFlag;
 }
 
+int GMSockCommand(int crate_number,
+                  long command_type, 
+                  long command,
+                  long par1,
+                  long par2, 
+                  long par3){
+  struct request myRequest;     // request to send to server 
+  struct request serverReply;   // reply from server 
+  int mlen; int errFlag;
+  
+  myRequest.command_type = htonl(command_type);
+  myRequest.command = htonl(command);
+  myRequest.magic_cookie = htonl(MAGIC_COOKIE);
+  myRequest.par1 = htonl(par1);
+  myRequest.par2 = htonl(par2);
+  myRequest.par3 = htonl(par3);
+
+  FILE *fp; char str[100];
+  char* in_fname = "transfer.txt";
+  
+  fp = fopen(in_fname, "r"); int nlines = 0;
+  char message[100]; char reply[100];
+  if(fp == NULL){printf("Could not open file %s", in_fname);}
+  while(fgets(str, 100, fp) != NULL){
+    if(nlines < 1){strcpy(message, str);}
+    else{strcpy(reply, str);}
+    nlines++;
+  }
+  fclose(fp);
+
+  system("rm -f transfer.txt");
+  switch (*(reply))
+  {
+    case 'y':
+    case 'Y': myRequest.reply = TRUE;
+      break;
+    default: myRequest.reply = FALSE;
+      break;
+  }
+  mlen = strlen(message);
+  strncpy(myRequest.message,message,REQUEST_MSG_SIZE);
+  myRequest.msgLen = htonl(mlen);
+  myRequest.message[mlen] = '\0';
+  
+  errFlag = cfSockCli(crate_number, &myRequest,&serverReply);
+
+  if(errFlag == SOCK_OK){
+    FILE *fp_out; char str_out[100];
+    char* out_fname = "reply.txt";
+    
+    fp_out = fopen(out_fname, "w");
+    fprintf(fp_out, "%i\n", ntohl(serverReply.command_type));
+    fprintf(fp_out, "%i\n", ntohl(serverReply.command));
+    fprintf(fp_out, "%i\n", ntohl(serverReply.par1));
+    fprintf(fp_out, "%i\n", ntohl(serverReply.par2));
+    fprintf(fp_out, "%i\n", ntohl(serverReply.par3));
+    fprintf(fp_out, "%s", serverReply.message);
+    fprintf(fp_out, "%i\n", (int)serverReply.reply);
+    fclose(fp_out);
+
+    printf("(cfSockCli) MESSAGE FROM SERVER: %s\n", serverReply.message);
+    printf("(cfSockCli) Server reply command: %d\n", ntohl(serverReply.command));
+  }
+
+  return errFlag;
+}
+
 
 void buildRequestInteractive(struct request *myRequest) {
   /* build request, prompting user for message */
@@ -371,21 +441,3 @@ void buildRequestInteractive(struct request *myRequest) {
       break;
     }
 }
-
-void handleReplyInteractive(struct request *serverReply) {
-  /* build request, prompting user for message */
-      printf ("MESSAGE FROM SERVER:\n%s\n", serverReply->message);
-      printf("Server reply command type: %d \n",ntohl(serverReply->command_type));
-      printf("Server reply command: %d \n",ntohl(serverReply->command));
-      printf("Server reply param_1: %d \n",ntohl(serverReply->par1));
-      printf("Server reply param_2: %d \n",ntohl(serverReply->par2));
-      printf("Server reply param_3: %d \n",ntohl(serverReply->par3));
-      printf("Server reply msgLen: %d \n",ntohl(serverReply->msgLen));
-}
-
-
-
-
-
-
-

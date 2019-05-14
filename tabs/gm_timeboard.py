@@ -12,7 +12,7 @@ from ctypes import cdll
 
 class Timeboard(tk.Frame):
   def __init__(self, tab):
-    self.lib = cdll.LoadLibrary('./libGTimeboard.so')
+    self.lib = cdll.LoadLibrary('./libs/libGTimeboard.so')
     self.obj = self.lib.init(40, 13200, 0)
 
     self.ch_frame = tk.LabelFrame(tab, text='CH', background=u.green_color, width=500)

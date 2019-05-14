@@ -9,12 +9,20 @@ import tkinter as tk
 from tkinter import ttk
 import utils as u
 from ctypes import cdll
+import time
+
+KILL          = 2001
+GET_STATUS    = 2002
+START         = 2003
+CHECK_ALIVE   = 2004
+TEST_START    = 2005
+TEST_SET_DATA = 2006
+UNKILL        = 2007
+
+tab_title = '(BMW tab)'
 
 class BMW(tk.Frame):
   def __init__(self, tab):
-    self.lib = cdll.LoadLibrary('./libGBMW.so')
-    self.obj = self.lib.init()
-
     self.bm_frame = tk.LabelFrame(tab, text='Beam Modulation', background=u.green_color)
     self.script_frame = tk.LabelFrame(self.bm_frame, text='Beam Modulation Script', background=u.green_color)
     self.script_frame.grid(row=0, column=0, pady=10, sticky='W')
@@ -35,7 +43,7 @@ class BMW(tk.Frame):
 
   def script_frame_layout(self):
     self.ks_bm_l.grid(row=0, column=0, padx=10, pady=10, sticky='W')
-    tk.Button(self.script_frame, text='Check Status', background=u.green_color, command=self.check_status).grid(
+    tk.Button(self.script_frame, text='Check Status', background=u.green_color, command=self.check_status_button).grid(
         row=0, column=1, padx=10, pady=10, sticky='W')
     self.status_bm_l.grid(row=0, column=2, padx=10, pady=10, sticky='W')
     self.bm_button = tk.Button(self.script_frame, text='Start Beam Modulation', background=u.green_color, command=self.change_status)
@@ -45,7 +53,7 @@ class BMW(tk.Frame):
   def test_frame_layout(self):
     tk.Button(self.test_frame, text='Enable BMW Test', background=u.green_color, command=self.start_test).grid(
         row=0, column=0, columnspan=2, padx=10, pady=10)
-    tk.Button(self.test_frame, text='Toggle Kill Switch', background=u.green_color, command=self.kill_switch).grid(
+    tk.Button(self.test_frame, text='Toggle Kill Switch', background=u.green_color, command=self.set_kill).grid(
         row=0, column=2, columnspan=2, padx=10, pady=10)
     
     self.bm_test_index.set(0)
@@ -58,69 +66,98 @@ class BMW(tk.Frame):
         tk.Label(self.test_frame, text='Set Point\n(mA or keV)', bg=u.green_color).grid(
             row=3, column=1, padx=5, pady=5, sticky='W')
 
-  def get_KS_text(self):
-    new_ks = self.lib.getKSText(self.obj)
-    self.ks_bm_l['text'] = str(new_ks)
+  def start_test(self):
+    packet = [u.COMMAND_BMW, START, 0, 0, 0, "BMW Start Test", "Y"]
+    err_flag, reply = u.send_command(u.Crate_CH, packet)
 
-  def get_ST_vtext(self):
-    new_st = self.lib.getStatText(self.obj)
-    self.status_bm_l['text'] = str(new_st)
-
-  def get_ACT_text(self):
-    new_act = self.lib.getActText(self.obj)
-    self.script_bm_l['text'] = str(new_act)
-
-  def get_button_text(self):
-    new_button_text = self.lib.getButtonText(self.obj)
-    self.bm_button['text'] = str(new_button_text)
-
-  def get_test_type(self):
-    new_test_type = self.lib.getTestType(self.obj)
-    self.bm_test_index.set(int(new_test_type))
-
-  def set_test_type(self):
-    self.lib.setTestType(self.obj, self.bm_test_index.get())
-
-  def get_set_point(self):
-    new_set_point = self.lib.getSetPoint(self.obj)
-    self.test_e = u.set_text(self.test_e, str(new_set_point))
-
-  def set_set_point(self):
-    self.lib.setSetPoint(self.obj, int(self.test_e.get()))
-
-  def get_all_values(self):
-    print("Kill switch?")
-    self.get_KS_text()
-    print("Yes. Status?")
-    self.get_ST_text()
-    print("Yes. Active?")
-    self.get_ACT_text()
-    print("Yes. Button text?")
-    self.get_button_text()
-    print("Yes. Test type?")
-    self.get_test_type()
-    print("Yes. Set point?")
-    self.get_set_point()
-    print("Yes. No more problems, chief.")
+    if err_flag == u.SOCK_OK:
+      packet[0] = reply[0]
+      self.test_step()
+    else:
+      print(tab_title + " start_test: ERROR, Could not access socket.")
+    
+  def test_step(self):
+    value = int(self.test_e.get())
+    print("  " + tab_title + " Writing new set point: " + self.test_e.get() + " to " + self.button_titles[self.bm_test_index.get()])
+    
+    packet = [u.COMMAND_BMW, TEST_SET_DATA, self.bm_test_index.get(), value, 0, "BMW Start Test Data", "Y"]
+    err_flag, reply = u.send_command(u.Crate_CH, packet)
+    
+    if err_flag == u.SOCK_OK: 
+      kill_switch = reply[2]
+      if not kill_switch:
+        self.start_time = time.perf_counter()
+    else: 
+      print(tab_title + " test_step: ERROR, Could not access socket.")
 
   def check_status(self):
-    self.lib.BMWCheckStatus(self.obj)
-    self.lib.BMWActiveProbe(self.obj)
-    print("Starting get values...")
-    self.get_all_values()
+    packet = [u.COMMAND_BMW, GET_STATUS, 0, 0, 0, "BMW status check", "Y"]
+    err_flag, reply = u.send_command(u.Crate_CH, packet)
+    
+    if err_flag == u.SOCK_OK:
+      bmw_running = bool(reply[2])
+      print(tab_title + " check_status: bmw_running = " + str(bmw_running))
+      kill_switch = bool(reply[3])
+      print(tab_title + " check_status: kill_switch = " + str(kill_switch))
+
+      if kill_switch: self.ks.bm_l['text'] = 'Kill Switch is ON'
+      else: self.ks_bm_l['text'] = 'Kill Switch is OFF'
+
+      if bmw_running: 
+        self.status_bm_l['text'] = 'Beam Modulation is ON'
+        self.bm_button['text'] = 'Set Kill Switch'
+      else: 
+        self.status_bm_l['text'] = 'Beam Modulation is OFF'
+        self.bm_button['text'] = 'Start Beam Modulation'
+      return bmw_running, kill_switch
+    else:
+      print(tab_title + " check_status: ERROR, Could not access socket.")
+      return False, False
 
   def change_status(self):
-    self.lib.BMWChangeStatus(self.obj)
-    self.get_all_values()
+    bmw_running, kill_switch = self.check_status()
+    packet = []
+    if bmw_running: packet = [u.COMMAND_BMW, KILL, 0, 0, 0, "BMW Status Change", "Y"]
+    else: packet = [u.COMMAND_BMW, START, 0, 0, 0, "BMW Status Change", "Y"]
+    print(tab_title + " Changing status of BMW client...")
+    err_flag, reply = u.send_command(u.Crate_CH, packet)
 
-  def start_test(self):
-    self.set_test_type()
-    self.set_set_point()
-    self.lib.BMWStartTest(self.obj)
-    self.get_all_values()
+    if err_flag == u.SOCK_OK:
+      print(tab_title + ' BMW status change call is complete')
+      bmw_running, kill_switch = self.check_status()
+      print(tab_title + ' change_status: command = ' + str(reply[1]))
+      print(tab_title + ' change_status: bmw_running')
+      print(tab_title + ' change_status: Exiting...')
+    else:
+      print(tab_title + " change_status: ERROR, Could not access socket.")
 
-  def kill_switch(self):
-    self.lib.BMWSetKill(self.obj)
-    self.get_all_values()
+  def set_kill(self):
+    bmw_running, kill_switch = self.check_status()
     
-  
+    if not kill_switch:
+      packet = [u.COMMAND_BMW, KILL, 0, 0, 0, 'BMW set kill', 'Y']
+      err_flag, reply = u.send_command(u.Crate_CH, packet)
+      if err_flag == u.SOCK_OK: print(tab_title + ' set_kill: BMW kill switch call is complete.')
+      else: print(tab_title + ' set_kill: ERROR, Could not access socket.')
+      self.check_status()
+    else:
+      packet = [u.COMMAND_BMW, UNKILL, 0, 0, 0, 'BMW lift kill', 'Y']
+      err_flag, reply = u.send_command(u.Crate_CH, packet)
+      if err_flag == u.SOCK_OK: print(tab_title + ' set_kill: BMW unkill switch call is complete.')
+      else: print(tab_title + ' set_kill: ERROR, Could not access socket.')
+      self.check_status()
+      
+  def check_active_flag(self):
+    active = False
+    packet = [u.COMMAND_BMW, CHECK_ALIVE, 0, 0, 0, 'BMW status check', 'Y']
+    err_flag, reply = u.send_command(u.Crate_CH, packet)
+
+    if err_flag == u.SOCK_OK:
+      active = bool(reply[3])
+      if active: self.script_bm_l['text'] = 'Beam Modulation script is ON'
+      else: self.script_bm_l['text'] = 'Beam Modulation script is OFF'
+    else: print(tab_title + ' check_active_flag: ERROR, Could not access socket.')
+
+  def check_status_button(self):
+    self.check_status()
+    self.check_active_flag()

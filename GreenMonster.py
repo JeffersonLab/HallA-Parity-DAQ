@@ -9,12 +9,12 @@ from tkinter import ttk
 import os
 #from PIL import Image, ImageTk
 
-import gm_bmw as bmw
-import gm_scan as scan_util
-import gm_timeboard as tmbd
-import gm_vqwk as vqwk
-import gm_adc18 as adc18s
-import gm_vxworks as vxworks
+import tabs.gm_bmw as bmw
+import tabs.gm_scan as scan_util
+import tabs.gm_timeboard as tmbd
+import tabs.gm_vqwk as vqwk
+import tabs.gm_adc18 as adc18s
+import tabs.gm_vxworks as vxworks
 import utils as u
 
 class GreenMonster:

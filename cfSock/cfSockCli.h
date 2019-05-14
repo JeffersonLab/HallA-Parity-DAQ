@@ -14,6 +14,9 @@
 #define	STD_OUT	1
 #define	STD_ERR	2
 
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 #include "GreenSock.h"
 #include "cfSock.h"
 
@@ -26,7 +29,12 @@ char * ServerName_RightSpect="129.57.192.60";
 char * ServerName_Injector="129.57.164.61";
 char * ServerName_TestCrate="129.57.164.100"; 
 
-
+extern int GMSockCommand(int crate_number,
+                         long command_type, 
+                         long command,
+                         long par1,
+                         long par2, 
+                         long par3);
 
 
 /* [apar@adaq2 ~/doc]$ more vmeram.doc */
