@@ -15,6 +15,7 @@ import tabs.gm_timeboard as tmbd
 import tabs.gm_vqwk as vqwk
 import tabs.gm_adc18 as adc18s
 import tabs.gm_vxworks as vxworks
+import tabs.baseball_reference_tab as mlb
 import utils as u
 
 class GreenMonster:
@@ -44,17 +45,14 @@ class GreenMonster:
 
     def expert_tab(self, expt_tab):
         tab_control = ttk.Notebook(expt_tab)
-        tab_titles = ['TimeBoard', 'VQWK ADCs', 'ADC18s, CH', 'VXWorks Server']
-    
-        for title in tab_titles:
+        tab_titles = [('TimeBoard', tmbd.Timeboard), 
+                      ('VQWK ADCs', vqwk.VQWK), 
+                      ('ADC18s, CH', adc18s.ADC18), 
+                      ('VXWorks Server', vxworks.VXWorks)]
+        for title, fn in tab_titles:
             sub_tab = ttk.Frame(tab_control, width=800, height=600, style="My.TFrame")
             tab_control.add(sub_tab, text=title)
-        
-            if 'Time' in title: tmbd.Timeboard(sub_tab)
-            elif 'VQWK' in title: vqwk.VQWK(sub_tab)
-            elif 'ADC18s' in title: adc18s.ADC18(sub_tab)
-            elif 'VXWorks' in title: vxworks.VXWorks(sub_tab)
-            else: tk.Label(sub_tab, text='Default', bg=u.green_color).pack(padx=20, pady=20, anchor='center')
+            fn(sub_tab)
         tab_control.grid(row=0, column=0, columnspan=2)
 
     def create_widgets(self):
@@ -63,16 +61,13 @@ class GreenMonster:
         gui_style.configure('My.TFrame', background=u.green_color)
 
         tab_control = ttk.Notebook(self.win)
-        tab_titles = ['BMW', 'ScanUtil', 'Expert']
-        for title in tab_titles:
+        tab_titles = [('BMW', bmw.BMW), 
+                      ('ScanUtil', scan_util.ScanUtil), 
+                      ('Expert', self.expert_tab)]
+        for title, fn in tab_titles:
             tab = ttk.Frame(tab_control, width=800, height=600, style="My.TFrame")
             tab_control.add(tab, text=title)
-            if 'BMW' in title:
-                bmw.BMW(tab)
-            elif 'Scan' in title:
-                scan_util.ScanUtil(tab)
-            elif 'Expert' in title:
-                self.expert_tab(tab)
+            fn(tab)
         tab_control.grid(row=0, column=0, columnspan=2)
         #fenway = ImageTk.PhotoImage(Image.open('Green_Monster.jpg'))
         fenway_pahk = tk.Label(self.win, text='GREEN MONSTER', background=u.green_color)

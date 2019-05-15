@@ -12,9 +12,6 @@ from ctypes import cdll
 
 class VQWK(tk.Frame):
   def __init__(self, tab):
-    self.lib = cdll.LoadLibrary('./libs/libGVQWK.so')
-    self.obj = self.lib.init(4141, 10, 4, 496, 10, 4)
-
     self.ch_frame = tk.LabelFrame(tab, text='CH', background=u.green_color, width=500)
     self.inj_frame = tk.LabelFrame(tab, text='Inj', background=u.green_color, width=500)
     self.samples_ch_l = tk.Label(self.ch_frame, text='Samples Per Block', background=u.green_color)
@@ -42,9 +39,9 @@ class VQWK(tk.Frame):
     u.set_text(self.samples_ch_e, '4141').grid(row=0, column=1)
     u.set_text(self.gate_ch_e, '10').grid(row=1, column=1)
     u.set_text(self.blocks_ch_e, '4').grid(row=2, column=1)
-    tk.Button(self.ch_frame, text='Get Settings', background=u.green_color, command=self.get_settings_ch).grid(
+    tk.Button(self.ch_frame, text='Get Settings', background=u.green_color).grid(
         row=3, column=0, pady=10)
-    tk.Button(self.ch_frame, text='Apply Settings', background=u.green_color, command=self.set_settings_ch).grid(
+    tk.Button(self.ch_frame, text='Apply Settings', background=u.green_color).grid(
         row=3, column=1, pady=10)
 
   def fill_inj_frame(self):
@@ -54,11 +51,12 @@ class VQWK(tk.Frame):
     u.set_text(self.samples_inj_e, '496').grid(row=0, column=1)
     u.set_text(self.gate_inj_e, '10').grid(row=1, column=1)
     u.set_text(self.blocks_inj_e, '4').grid(row=2, column=1)
-    tk.Button(self.inj_frame, text='Get Settings', background=u.green_color, command=self.get_settings_inj).grid(
+    tk.Button(self.inj_frame, text='Get Settings', background=u.green_color).grid(
         row=3, column=0, pady=10)
-    tk.Button(self.inj_frame, text='Apply Settings', background=u.green_color, command=self.get_settings_inj).grid(
+    tk.Button(self.inj_frame, text='Apply Settings', background=u.green_color).grid(
         row=3, column=1, pady=10)
 
+  '''
   def get_samp_ch(self):
     new_samp = self.lib.getSampVal1(self.obj)
     self.samples_ch_e = u.set_text(self.samples_ch_e, new_samp)
@@ -120,4 +118,4 @@ class VQWK(tk.Frame):
     self.set_samp_inj()
     self.set_gate_inj()
     self.set_blocks_inj()
-    
+  '''

@@ -12,9 +12,6 @@ from ctypes import cdll
 
 class Timeboard(tk.Frame):
   def __init__(self, tab):
-    self.lib = cdll.LoadLibrary('./libs/libGTimeboard.so')
-    self.obj = self.lib.init(40, 13200, 0)
-
     self.ch_frame = tk.LabelFrame(tab, text='CH', background=u.green_color, width=500)
     self.ramp_delay_l = tk.Label(self.ch_frame, text='Ramp Delay', background=u.green_color)
     self.int_time_l = tk.Label(self.ch_frame, text='Integrate Time', background=u.green_color)
@@ -29,12 +26,13 @@ class Timeboard(tk.Frame):
     u.set_text(self.ramp_delay_e, '40').grid(row=0, column=1)
     u.set_text(self.int_time_e, '13200').grid(row=1, column=1)
     u.set_text(self.oversamp_e, '0').grid(row=2, column=1)
-    tk.Button(self.ch_frame, text='Get Settings', background=u.green_color, command=self.get_all_values).grid(
+    tk.Button(self.ch_frame, text='Get Settings', background=u.green_color).grid(
         row=3, column=0, pady=10)
-    tk.Button(self.ch_frame, text='Apply Settings', background=u.green_color, command=self.set_all_values).grid(
+    tk.Button(self.ch_frame, text='Apply Settings', background=u.green_color).grid(
         row=3, column=1, pady=10)
     self.ch_frame.pack(padx=20, pady=10, anchor='w')
   
+  '''
   def get_RD_value(self):
     new_rd = self.lib.getRDvalue(self.obj)
     self.ramp_delay_e = u.set_text(self.ramp_delay_e, str(new_rd))
@@ -73,3 +71,5 @@ class Timeboard(tk.Frame):
     self.set_IS_value()
     self.set_OS_value()
     self.push_to_board()
+
+  '''
