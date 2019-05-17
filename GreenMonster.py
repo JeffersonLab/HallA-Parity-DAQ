@@ -7,7 +7,7 @@ Code by A.J. Zec
 import tkinter as tk
 from tkinter import ttk
 import os
-#from PIL import Image, ImageTk
+import webbrowser
 
 import tabs.gm_bmw as bmw
 import tabs.gm_scan as scan_util
@@ -15,7 +15,6 @@ import tabs.gm_timeboard as tmbd
 import tabs.gm_vqwk as vqwk
 import tabs.gm_adc18 as adc18s
 import tabs.gm_vxworks as vxworks
-import tabs.baseball_reference_tab as mlb
 import utils as u
 
 class GreenMonster:
@@ -43,6 +42,9 @@ class GreenMonster:
         self.win.destroy()
         exit()
 
+    def educate_yourself(self, event):
+      webbrowser.open_new(r"https://en.wikipedia.org/wiki/Green_Monster")
+
     def expert_tab(self, expt_tab):
         tab_control = ttk.Notebook(expt_tab)
         tab_titles = [('TimeBoard', tmbd.Timeboard), 
@@ -69,10 +71,11 @@ class GreenMonster:
             tab_control.add(tab, text=title)
             fn(tab)
         tab_control.grid(row=0, column=0, columnspan=2)
-        #fenway = ImageTk.PhotoImage(Image.open('Green_Monster.jpg'))
-        fenway_pahk = tk.Label(self.win, text='GREEN MONSTER', background=u.green_color)
-        #fenway_pahk.image = fenway
+        fenway = tk.PhotoImage(file='gm.ppm')
+        fenway_pahk = tk.Label(self.win, image=fenway, cursor="hand2", bg=u.green_color)
+        fenway_pahk.image = fenway
         fenway_pahk.grid(row=1, column=0, padx=5, pady=10, sticky='SW')
+        fenway_pahk.bind("<Button-1>", self.educate_yourself)
         tk.Button(self.win, text='QUIT', command=quit, background=u.green_color, width=20, height=4).grid(
             row=1, column=1, padx=15, pady=5, sticky='SE')
 
