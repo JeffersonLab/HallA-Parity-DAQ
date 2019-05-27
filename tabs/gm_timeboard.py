@@ -10,6 +10,15 @@ from tkinter import ttk
 import utils as u
 from ctypes import cdll
 
+GM_HAPTB	=1000
+GM_TB_GET	=1001
+GM_TB_SET	=1002
+HAPTB_GET_DATA	=1001
+HAPTB_SET_DATA	=1002
+HAPTB_RD	=201
+HAPTB_IT	=202
+HAPTB_OS	=221
+
 class Timeboard(tk.Frame):
   def __init__(self, tab):
     self.ch_frame = tk.LabelFrame(tab, text='CH', background=u.green_color, width=500)
@@ -23,53 +32,276 @@ class Timeboard(tk.Frame):
     self.ramp_delay_l.grid(row=0, column=0, padx=10, pady=5, sticky='W')
     self.int_time_l.grid(row=1, column=0, padx=10, pady=5, sticky='W')
     self.oversamp_l.grid(row=2, column=0, padx=10, pady=5, sticky='W')
-    u.set_text(self.ramp_delay_e, '40').grid(row=0, column=1)
-    u.set_text(self.int_time_e, '13200').grid(row=1, column=1)
-    u.set_text(self.oversamp_e, '0').grid(row=2, column=1)
-    tk.Button(self.ch_frame, text='Get Settings', background=u.green_color).grid(
+    u.set_text(self.ramp_delay_e, '0').grid(row=0, column=1, padx=10, pady=5, sticky='W')
+    u.set_text(self.int_time_e, '0').grid(row=1, column=1, padx=10, pady=5, sticky='W')
+    u.set_text(self.oversamp_e, '0').grid(row=2, column=1, padx=10, pady=5, sticky='W')
+    tk.Button(self.ch_frame, text='Get Settings', background=u.green_color, command=self.check_values_ch).grid(
         row=3, column=0, pady=10)
-    tk.Button(self.ch_frame, text='Apply Settings', background=u.green_color).grid(
+    tk.Button(self.ch_frame, text='Apply Settings', background=u.green_color, command=self.set_values_ch).grid(
         row=3, column=1, pady=10)
     self.ch_frame.pack(padx=20, pady=10, anchor='w')
+
+    self.rt_spec_frame = tk.LabelFrame(tab, text='RtSpec', background=u.green_color, width=500)
+    self.rt_spec_ramp_delay_l = tk.Label(self.rt_spec_frame, text='Ramp Delay', background=u.green_color)
+    self.rt_spec_int_time_l = tk.Label(self.rt_spec_frame, text='Integrate Time', background=u.green_color)
+    self.rt_spec_oversamp_l = tk.Label(self.rt_spec_frame, text='Oversampling', background=u.green_color)
+    self.rt_spec_ramp_delay_e = tk.Entry(self.rt_spec_frame)
+    self.rt_spec_int_time_e = tk.Entry(self.rt_spec_frame)
+    self.rt_spec_oversamp_e = tk.Entry(self.rt_spec_frame)
+
+    self.rt_spec_ramp_delay_l.grid(row=0, column=0, padx=10, pady=5, sticky='W')
+    self.rt_spec_int_time_l.grid(row=1, column=0, padx=10, pady=5, sticky='W')
+    self.rt_spec_oversamp_l.grid(row=2, column=0, padx=10, pady=5, sticky='W')
+    u.set_text(self.rt_spec_ramp_delay_e, '0').grid(row=0, column=1, padx=10, pady=5, sticky='W')
+    u.set_text(self.rt_spec_int_time_e, '0').grid(row=1, column=1, padx=10, pady=5, sticky='W')
+    u.set_text(self.rt_spec_oversamp_e, '0').grid(row=2, column=1, padx=10, pady=5, sticky='W')
+    tk.Button(self.rt_spec_frame, text='Get Settings', background=u.green_color, command=self.check_values_rt_spec).grid(
+        row=3, column=0, pady=10)
+    tk.Button(self.rt_spec_frame, text='Apply Settings', background=u.green_color, command=self.set_values_rt_spec).grid(
+        row=3, column=1, pady=10)
+    self.rt_spec_frame.pack(padx=20, pady=10, anchor='w')
+
+    self.check_values_ch()
+    self.check_values_rt_spec()
   
-  '''
-  def get_RD_value(self):
-    new_rd = self.lib.getRDvalue(self.obj)
-    self.ramp_delay_e = u.set_text(self.ramp_delay_e, str(new_rd))
+  def check_values_ch(self):
+    packet1 = [u.COMMAND_HAPTB, HAPTB_GET_DATA, HAPTB_RD, 0, 0, "TB Get Data", "Y"]
+    err_flag, reply1 = u.send_command(u.Crate_CH, packet1)
+    
+    print("I am here where you thought I was")
+    print("COMMAND_HAPTB is " + str(u.COMMAND_HAPTB))
+    print("cfSockCommand returned :  " + str(err_flag))
+    
+    if err_flag == u.SOCK_OK:
+      CurrentRD = int(reply1[3])
+      self.ramp_delay_e.delete(0, tk.END)
+      self.ramp_delay_e.insert(0, str(CurrentRD))
+      print("Ramp delay is " + str(CurrentRD))
 
-  def set_RD_value(self):
-    self.lib.setRDvalue(self.obj, int(self.ramp_delay_e.get()))
+    else:
+      print("ERROR, Could not access socket.")
+      return
 
-  def get_IS_value(self):
-    new_is = self.lib.getISvalue(self.obj)
-    self.int_time_e = u.set_text(self.int_time_e, str(new_is))
+    packet2 = [u.COMMAND_HAPTB, HAPTB_GET_DATA, HAPTB_IT, 0, 0, "TB Get Data", "Y"]
+    err_flag, reply2 = u.send_command(u.Crate_CH, packet2)
+    
+    if err_flag == u.SOCK_OK:
+      CurrentIT = int(reply2[3])
+      self.int_time_e.delete(0, tk.END)
+      self.int_time_e.insert(0, str(CurrentIT))
+      print("Integration time is " + str(CurrentIT))
 
-  def set_IS_value(self):
-    self.lib.setISvalue(self.obj, int(self.int_time_e.get()))
+    else:
+      print("ERROR, Could not access socket.")
+      return
 
-  def get_OS_value(self):
-    new_os = self.lib.getOSvalue(self.obj)
-    self.oversamp_e = u.set_text(self.oversamp_e, str(new_os))
+    packet3 = [u.COMMAND_HAPTB, HAPTB_GET_DATA, HAPTB_OS, 0, 0, "TB Get Data", "Y"]
+    err_flag, reply3 = u.send_command(u.Crate_CH, packet3)
+    
+    if err_flag == u.SOCK_OK:
+      CurrentOS = int(reply3[3])
+      self.oversamp_e.delete(0, tk.END)
+      self.oversamp_e.insert(0, str(CurrentOS))
+      print("Oversampling is " + str(CurrentOS))
 
-  def set_OS_value(self):
-    self.lib.setOSvalue(self.obj, int(self.oversamp_e.get()))
+    else:
+      print("ERROR, Could not access socket.")
+      return
 
-  def pull_from_board(self):
-    self.lib.getValsTB(self.obj)
+  def check_values_rt_spec(self):
+    packet1 = [u.COMMAND_HAPTB, HAPTB_GET_DATA, HAPTB_RD, 0, 0, "TB Get Data", "Y"]
+    err_flag, reply1 = u.send_command(u.Crate_RHRS, packet1)
+    
+    print("I am here where you thought I was")
+    print("COMMAND_HAPTB is " + str(u.COMMAND_HAPTB))
+    print("cfSockCommand returned :  " + str(err_flag))
+    
+    if err_flag == u.SOCK_OK:
+      CurrentRD = int(reply1[3])
+      self.rt_spec_ramp_delay_e.delete(0, tk.END)
+      self.rt_spec_ramp_delay_e.insert(0, str(CurrentRD))
+      print("Ramp delay is " + str(CurrentRD))
 
-  def push_to_board(self):
-    self.lib.setValsTB(self.obj)
+    else:
+      print("ERROR, Could not access socket.")
+      return
 
-  def get_all_values(self):
-    self.pull_from_board()
-    self.get_RD_value()
-    self.get_IS_value()
-    self.get_OS_value()
+    packet2 = [u.COMMAND_HAPTB, HAPTB_GET_DATA, HAPTB_IT, 0, 0, "TB Get Data", "Y"]
+    err_flag, reply2 = u.send_command(u.Crate_RHRS, packet2)
+    
+    if err_flag == u.SOCK_OK:
+      CurrentIT = int(reply2[3])
+      self.rt_spec_int_time_e.delete(0, tk.END)
+      self.rt_spec_int_time_e.insert(0, str(CurrentIT))
+      print("Integration time is " + str(CurrentIT))
 
-  def set_all_values(self):
-    self.set_RD_value()
-    self.set_IS_value()
-    self.set_OS_value()
-    self.push_to_board()
+    else:
+      print("ERROR, Could not access socket.")
+      return
 
-  '''
+    packet3 = [u.COMMAND_HAPTB, HAPTB_GET_DATA, HAPTB_OS, 0, 0, "TB Get Data", "Y"]
+    err_flag, reply3 = u.send_command(u.Crate_RHRS, packet3)
+    
+    if err_flag == u.SOCK_OK:
+      CurrentOS = int(reply3[3])
+      self.rt_spec_oversamp_e.delete(0, tk.END)
+      self.rt_spec_oversamp_e.insert(0, str(CurrentOS))
+      print("Oversampling is " + str(CurrentOS))
+
+    else:
+      print("ERROR, Could not access socket.")
+      return
+
+  def set_values_ch(self):
+
+    value1 = int(self.ramp_delay_e.get())
+    value2 = int(self.int_time_e.get())
+    value3 = int(self.oversamp_e.get())
+
+    packet1 = [u.COMMAND_HAPTB, HAPTB_SET_DATA, HAPTB_RD, value1, 0, "TB Set Data", "Y"]
+    err_flag, reply1 = u.send_command(u.Crate_CH, packet1)
+    
+    othererror = 0
+    if err_flag == u.SOCK_OK:
+      if reply1[1] != 1:
+        if reply1[1] == -2:
+          print("Cannot set parameter, CODA run in progress!")
+        else:
+          print("Error:Server replied with TB error code: " + str(reply1[1]))
+          othererror = 1
+      else:
+        if reply1[2] != HAPTB_RD:
+          print("Server replied with wrong TB number: " +str(reply1[2])+ " instead of " +str(HAPTB_RD))
+          othererror = 1
+        if reply1[3] != value1:
+          print("Server replied with wrong TB set value: " +str(reply1[3])+ " instead of " +str(value1))
+          othererror = 1
+    else:
+      print(" check_status: ERROR, Could not access socket.")
+    if othererror == 1:
+      print("Unknown error, cannot set TB parameter")
+
+    packet2 = [u.COMMAND_HAPTB, HAPTB_SET_DATA, HAPTB_IT, value2, 0, "TB Set Data", "Y"]
+    err_flag, reply2 = u.send_command(u.Crate_CH, packet2)
+    
+    othererror = 0
+    if err_flag == u.SOCK_OK:
+      if reply2[1] != 1:
+        if reply2[1] == -2:
+          print("Cannot set parameter, CODA run in progress!")
+        else:
+          print("Error:Server replied with TB error code: " + str(reply2[1]))
+          othererror = 1
+      else:
+        if reply2[2] != HAPTB_IT:
+          print("Server replied with wrong TB number: " +str(reply2[2])+ " instead of " +str(HAPTB_IT))
+          othererror = 1
+        if reply2[3] != value2:
+          print("Server replied with wrong TB set value: " +str(reply2[3])+ " instead of " +str(value2))
+          othererror = 1
+    else:
+      print(" check_status: ERROR, Could not access socket.")
+    if othererror == 1:
+      print("Unknown error, cannot set TB parameter")
+
+    packet3 = [u.COMMAND_HAPTB, HAPTB_SET_DATA, HAPTB_OS, value3, 0, "TB Set Data", "Y"]
+    err_flag, reply3 = u.send_command(u.Crate_CH, packet3)
+    
+    othererror = 0
+    if err_flag == u.SOCK_OK:
+      if reply3[1] != 1:
+        if reply3[1] == -2:
+          print("Cannot set parameter, CODA run in progress!")
+        else:
+          print("Error:Server replied with TB error code: " + str(reply3[1]))
+          othererror = 1
+      else:
+        if reply3[2] != HAPTB_OS:
+          print("Server replied with wrong TB number: " +str(reply3[2])+ " instead of " +str(HAPTB_OS))
+          othererror = 1
+        if reply3[3] != value3:
+          print("Server replied with wrong TB set value: " +str(reply3[3])+ " instead of " +str(value3))
+          othererror = 1
+    else:
+      print(" check_status: ERROR, Could not access socket.")
+    if othererror == 1:
+      print("Unknown error, cannot set TB parameter")
+
+    self.check_values_ch()
+
+  def set_values_rt_spec(self):
+
+    value1 = int(self.rt_spec_ramp_delay_e.get())
+    value2 = int(self.rt_spec_int_time_e.get())
+    value3 = int(self.rt_spec_oversamp_e.get())
+
+    packet1 = [u.COMMAND_HAPTB, HAPTB_SET_DATA, HAPTB_RD, value1, 0, "TB Set Data", "Y"]
+    err_flag, reply1 = u.send_command(u.Crate_RHRS, packet1)
+    
+    othererror = 0
+    if err_flag == u.SOCK_OK:
+      if reply1[1] != 1:
+        if reply1[1] == -2:
+          print("Cannot set parameter, CODA run in progress!")
+        else:
+          print("Error:Server replied with TB error code: " + str(reply1[1]))
+          othererror = 1
+      else:
+        if reply1[2] != HAPTB_RD:
+          print("Server replied with wrong TB number: " +str(reply1[2])+ " instead of " +str(HAPTB_RD))
+          othererror = 1
+        if reply1[3] != value1:
+          print("Server replied with wrong TB set value: " +str(reply1[3])+ " instead of " +str(value1))
+          othererror = 1
+    else:
+      print(" check_status: ERROR, Could not access socket.")
+    if othererror == 1:
+      print("Unknown error, cannot set TB parameter")
+
+    packet2 = [u.COMMAND_HAPTB, HAPTB_SET_DATA, HAPTB_IT, value2, 0, "TB Set Data", "Y"]
+    err_flag, reply2 = u.send_command(u.Crate_RHRS, packet2)
+    
+    othererror = 0
+    if err_flag == u.SOCK_OK:
+      if reply2[1] != 1:
+        if reply2[1] == -2:
+          print("Cannot set parameter, CODA run in progress!")
+        else:
+          print("Error:Server replied with TB error code: " + str(reply2[1]))
+          othererror = 1
+      else:
+        if reply2[2] != HAPTB_IT:
+          print("Server replied with wrong TB number: " +str(reply2[2])+ " instead of " +str(HAPTB_IT))
+          othererror = 1
+        if reply2[3] != value2:
+          print("Server replied with wrong TB set value: " +str(reply2[3])+ " instead of " +str(value2))
+          othererror = 1
+    else:
+      print(" check_status: ERROR, Could not access socket.")
+    if othererror == 1:
+      print("Unknown error, cannot set TB parameter")
+
+    packet3 = [u.COMMAND_HAPTB, HAPTB_SET_DATA, HAPTB_OS, value3, 0, "TB Set Data", "Y"]
+    err_flag, reply3 = u.send_command(u.Crate_RHRS, packet3)
+    
+    othererror = 0
+    if err_flag == u.SOCK_OK:
+      if reply3[1] != 1:
+        if reply3[1] == -2:
+          print("Cannot set parameter, CODA run in progress!")
+        else:
+          print("Error:Server replied with TB error code: " + str(reply3[1]))
+          othererror = 1
+      else:
+        if reply3[2] != HAPTB_OS:
+          print("Server replied with wrong TB number: " +str(reply3[2])+ " instead of " +str(HAPTB_OS))
+          othererror = 1
+        if reply3[3] != value3:
+          print("Server replied with wrong TB set value: " +str(reply3[3])+ " instead of " +str(value3))
+          othererror = 1
+    else:
+      print(" check_status: ERROR, Could not access socket.")
+    if othererror == 1:
+      print("Unknown error, cannot set TB parameter")
+
+    self.check_values_rt_spec()

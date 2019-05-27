@@ -17,8 +17,12 @@ COMMAND_FDBK = 3000; COMMAND_HAPADC = 4000
 COMMAND_SCAN = 5000; COMMAND_ADC18 = 6000
 COMMAND_VQWK = 7000
 
-Crate_CH   = 0; Crate_INJ  = 1
-Crate_LHRS = 2; Crate_RHRS = 3
+#Crate_CH   = 0; Crate_INJ  = 1
+#Crate_LHRS = 2; Crate_RHRS = 3
+#Crate_Test = 4
+
+Crate_CH   = 0; Crate_LHRS = 1
+Crate_RHRS = 2; Crate_INJ  = 3
 Crate_Test = 4
 
 def set_text(entry, text):
