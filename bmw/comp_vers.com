@@ -1,6 +1,6 @@
 #!/bin/bash
 # Compare versions between $VERS1 and $VERS2 
-VERS1=/adaqfs/home/apar/dev_luis/bmw
+VERS1=/adaqfs/home/apar/caryn/devices/bmw
 VERS2=/adaqfs/home/apar/devices/bmw
 COMP_LOG=$(pwd)/comp_vers.log
 echo "Comparsion of $VERS1 and $VERS2 at `date`">$COMP_LOG

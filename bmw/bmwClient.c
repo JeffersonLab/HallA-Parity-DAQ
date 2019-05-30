@@ -335,7 +335,7 @@ STATUS bmwClient_script ()
 	if(!bmw_test){
 	  while ((cagetFFB_waveState(coil)!=1) && count2<5){
 	    count2++;
-	    caputFFB_leaveTrig(coil,1); // this sets the trig state to 0, and
+	    if(!bmw_test) caputFFB_leaveTrig(coil,1); // this sets the trig state to 0, and
 	    taskDelay(72); // 1/6 sec
 	    if(count2==5) fprintf(stdout,"Exiting the loop. Count limit exceeded!!\n");
 	  }
@@ -382,7 +382,7 @@ STATUS bmwClient_script ()
 	if(!bmw_test){
 	  while ((cagetFFB_waveState(coil)!=2) && count2<5){
 	    count2++;
-	    caputFFB_enterTrig(coil,1); 
+	    if(!bmw_test) caputFFB_enterTrig(coil,1); 
 	    taskDelay(150); // 72 is 1 sec
 	    if(count2==5) fprintf(stdout,"Exiting the loop. Count limit exceeded!!\n");
 	  }
@@ -444,7 +444,7 @@ STATUS bmwClient_script ()
 	// now the modulation for this particular magnet is done
 	// so come out of TRIGGER_STATE
 	// this, by default, is the CONFIG_STATE
-	caputFFB_leaveTrig(coil,1);
+	if(!bmw_test) caputFFB_leaveTrig(coil,1);
 	taskDelay(72);
 	//	if(!bmw_test){
 	//	  while(cagetFFB_waveState(coil)!=1 && count2<5)	{

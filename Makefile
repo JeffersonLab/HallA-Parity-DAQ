@@ -53,7 +53,7 @@ ADC16 = adc16/HAPADC_ch.o adc16/HAPADC_inj.o adc16/HAPADC_lspec.o \
 ADC18 = adc18/hapAdc18Test.o adc18/hapAdc18Count.o \
 	adc18/hapAdc18Left.o adc18/hapAdc18Right.o \
 	adc18/hapAdc18Inj.o  adc18/hapAdc18UVa.o
-BMW = bmw/bmwClient.o bmw/bmw_config.o  bmw/bmwDummy.o
+BMW = bmw/bmwClient.o bmw/bmw_config.o  bmw/bmwDummy.o bmw/bmw_config_interactive.o
 TB = timebrd/HAPTB_util.o timebrd/HAPTB_config.o
 AUXTB = auxtimebrd/AUXTB_util.o
 SOCK =  cfSock/cfSockSer.o cfSock/cfSockCli.o
@@ -189,6 +189,10 @@ bmw/bmwDummy.o : bmw/bmwDummy.c bmw/bmw.h
 bmw/bmw_config.o : bmw/bmw_config.c bmw/bmw_config.h bmw/bmw_cf_commands.h
 	rm -f $@
 	ccppc -o $@ -c $(CCVXFLAGS) bmw/bmw_config.c
+
+bmw/bmw_config_interactive.o : bmw/bmw_config_interactive.c bmw/bmw_config.h bmw/bmw_cf_commands.h
+	rm -f $@
+	ccppc -o $@ -c $(CCVXFLAGS) bmw/bmw_config_interactive.c
 
 flexio/KentVers/flexioLib.o : flexio/KentVers/flexioLib.c flexio/KentVers/flexioLib.h
 	rm -f $@
