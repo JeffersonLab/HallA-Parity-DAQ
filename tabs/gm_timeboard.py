@@ -22,6 +22,10 @@ HAPTB_OS	=221
 class Timeboard(tk.Frame):
   def __init__(self, tab):
     self.ch_frame = tk.LabelFrame(tab, text='CH', background=u.green_color, width=500)
+    self.inj_frame = tk.LabelFrame(tab, text='Inj', background=u.green_color, width=500)
+    self.lft_spec_frame = tk.LabelFrame(tab, text='LftSpec', background=u.green_color, width=500)
+    self.rt_spec_frame = tk.LabelFrame(tab, text='RtSpec', background=u.green_color, width=500)
+
     self.ramp_delay_l = tk.Label(self.ch_frame, text='Ramp Delay', background=u.green_color)
     self.int_time_l = tk.Label(self.ch_frame, text='Integrate Time', background=u.green_color)
     self.oversamp_l = tk.Label(self.ch_frame, text='Oversampling', background=u.green_color)
@@ -41,7 +45,6 @@ class Timeboard(tk.Frame):
         row=3, column=1, pady=10)
     self.ch_frame.pack(padx=20, pady=10, anchor='w')
 
-    self.rt_spec_frame = tk.LabelFrame(tab, text='RtSpec', background=u.green_color, width=500)
     self.rt_spec_ramp_delay_l = tk.Label(self.rt_spec_frame, text='Ramp Delay', background=u.green_color)
     self.rt_spec_int_time_l = tk.Label(self.rt_spec_frame, text='Integrate Time', background=u.green_color)
     self.rt_spec_oversamp_l = tk.Label(self.rt_spec_frame, text='Oversampling', background=u.green_color)
@@ -61,9 +64,54 @@ class Timeboard(tk.Frame):
         row=3, column=1, pady=10)
     self.rt_spec_frame.pack(padx=20, pady=10, anchor='w')
 
-    self.check_values_ch()
-    self.check_values_rt_spec()
+    #self.check_values_ch()
+    #self.check_values_rt_spec()
+    self.check_values(u.Crate_CH)
   
+  def check_values(self,crate):
+    packet1 = [u.COMMAND_HAPTB, HAPTB_GET_DATA, HAPTB_RD, 0, 0, "TB Get Data", "Y"]
+    err_flag, reply1 = u.send_command(crate, packet1)
+    
+    print("I am here where you thought I was")
+    print("COMMAND_HAPTB is " + str(u.COMMAND_HAPTB))
+    print("cfSockCommand returned :  " + str(err_flag))
+    
+    if err_flag == u.SOCK_OK:
+      CurrentRD = int(reply1[3])
+      self.ramp_delay_e.delete(0, tk.END)
+      self.ramp_delay_e.insert(0, str(CurrentRD))
+      print("Ramp delay is " + str(CurrentRD))
+
+    else:
+      print("ERROR, Could not access socket.")
+      return
+
+    packet2 = [u.COMMAND_HAPTB, HAPTB_GET_DATA, HAPTB_IT, 0, 0, "TB Get Data", "Y"]
+    err_flag, reply2 = u.send_command(u.crate, packet2)
+    
+    if err_flag == u.SOCK_OK:
+      CurrentIT = int(reply2[3])
+      self.int_time_e.delete(0, tk.END)
+      self.int_time_e.insert(0, str(CurrentIT))
+      print("Integration time is " + str(CurrentIT))
+
+    else:
+      print("ERROR, Could not access socket.")
+      return
+
+    packet3 = [u.COMMAND_HAPTB, HAPTB_GET_DATA, HAPTB_OS, 0, 0, "TB Get Data", "Y"]
+    err_flag, reply3 = u.send_command(u.crate, packet3)
+    
+    if err_flag == u.SOCK_OK:
+      CurrentOS = int(reply3[3])
+      self.oversamp_e.delete(0, tk.END)
+      self.oversamp_e.insert(0, str(CurrentOS))
+      print("Oversampling is " + str(CurrentOS))
+
+    else:
+      print("ERROR, Could not access socket.")
+      return
+
   def check_values_ch(self):
     packet1 = [u.COMMAND_HAPTB, HAPTB_GET_DATA, HAPTB_RD, 0, 0, "TB Get Data", "Y"]
     err_flag, reply1 = u.send_command(u.Crate_CH, packet1)
