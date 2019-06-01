@@ -43,45 +43,7 @@ class Timeboard(tk.Frame):
         row=3, column=0, pady=10)
     tk.Button(self.ch_frame, text='Apply Settings', background=u.green_color, command=self.set_values_ch).grid(
         row=3, column=1, pady=10)
-    self.ch_frame.pack(padx=20, pady=10, anchor='w')
-
-    self.rt_spec_ramp_delay_l = tk.Label(self.rt_spec_frame, text='Ramp Delay', background=u.green_color)
-    self.rt_spec_int_time_l = tk.Label(self.rt_spec_frame, text='Integrate Time', background=u.green_color)
-    self.rt_spec_oversamp_l = tk.Label(self.rt_spec_frame, text='Oversampling', background=u.green_color)
-    self.rt_spec_ramp_delay_e = tk.Entry(self.rt_spec_frame)
-    self.rt_spec_int_time_e = tk.Entry(self.rt_spec_frame)
-    self.rt_spec_oversamp_e = tk.Entry(self.rt_spec_frame)
-
-    self.rt_spec_ramp_delay_l.grid(row=0, column=0, padx=10, pady=5, sticky='W')
-    self.rt_spec_int_time_l.grid(row=1, column=0, padx=10, pady=5, sticky='W')
-    self.rt_spec_oversamp_l.grid(row=2, column=0, padx=10, pady=5, sticky='W')
-    u.set_text(self.rt_spec_ramp_delay_e, '0').grid(row=0, column=1, padx=10, pady=5, sticky='W')
-    u.set_text(self.rt_spec_int_time_e, '0').grid(row=1, column=1, padx=10, pady=5, sticky='W')
-    u.set_text(self.rt_spec_oversamp_e, '0').grid(row=2, column=1, padx=10, pady=5, sticky='W')
-    tk.Button(self.rt_spec_frame, text='Get Settings', background=u.green_color, command=self.check_values_rt_spec).grid(
-        row=3, column=0, pady=10)
-    tk.Button(self.rt_spec_frame, text='Apply Settings', background=u.green_color, command=self.set_values_rt_spec).grid(
-        row=3, column=1, pady=10)
-    self.rt_spec_frame.pack(padx=20, pady=10, anchor='w')
-
-    self.lft_spec_ramp_delay_l = tk.Label(self.lft_spec_frame, text='Ramp Delay', background=u.green_color)
-    self.lft_spec_int_time_l = tk.Label(self.lft_spec_frame, text='Integrate Time', background=u.green_color)
-    self.lft_spec_oversamp_l = tk.Label(self.lft_spec_frame, text='Oversampling', background=u.green_color)
-    self.lft_spec_ramp_delay_e = tk.Entry(self.lft_spec_frame)
-    self.lft_spec_int_time_e = tk.Entry(self.lft_spec_frame)
-    self.lft_spec_oversamp_e = tk.Entry(self.lft_spec_frame)
-
-    self.lft_spec_ramp_delay_l.grid(row=0, column=0, padx=10, pady=5, sticky='W')
-    self.lft_spec_int_time_l.grid(row=1, column=0, padx=10, pady=5, sticky='W')
-    self.lft_spec_oversamp_l.grid(row=2, column=0, padx=10, pady=5, sticky='W')
-    u.set_text(self.lft_spec_ramp_delay_e, '0').grid(row=0, column=1, padx=10, pady=5, sticky='W')
-    u.set_text(self.lft_spec_int_time_e, '0').grid(row=1, column=1, padx=10, pady=5, sticky='W')
-    u.set_text(self.lft_spec_oversamp_e, '0').grid(row=2, column=1, padx=10, pady=5, sticky='W')
-    tk.Button(self.lft_spec_frame, text='Get Settings', background=u.green_color, command=self.check_values_lft_spec).grid(
-        row=3, column=0, pady=10)
-    tk.Button(self.lft_spec_frame, text='Apply Settings', background=u.green_color, command=self.set_values_lft_spec).grid(
-        row=3, column=1, pady=10)
-    self.lft_spec_frame.pack(padx=20, pady=10, anchor='w')
+    self.ch_frame.pack(row=0, column=0, padx=20, pady=10, anchor='w')
 
     self.inj_ramp_delay_l = tk.Label(self.inj_frame, text='Ramp Delay', background=u.green_color)
     self.inj_int_time_l = tk.Label(self.inj_frame, text='Integrate Time', background=u.green_color)
@@ -100,12 +62,50 @@ class Timeboard(tk.Frame):
         row=3, column=0, pady=10)
     tk.Button(self.inj_frame, text='Apply Settings', background=u.green_color, command=self.set_values_inj).grid(
         row=3, column=1, pady=10)
-    self.inj_frame.pack(padx=20, pady=10, anchor='w')
+    self.inj_frame.pack(row=0, column=1, padx=20, pady=10, anchor='w')
+
+    self.lft_spec_ramp_delay_l = tk.Label(self.lft_spec_frame, text='Ramp Delay', background=u.green_color)
+    self.lft_spec_int_time_l = tk.Label(self.lft_spec_frame, text='Integrate Time', background=u.green_color)
+    self.lft_spec_oversamp_l = tk.Label(self.lft_spec_frame, text='Oversampling', background=u.green_color)
+    self.lft_spec_ramp_delay_e = tk.Entry(self.lft_spec_frame)
+    self.lft_spec_int_time_e = tk.Entry(self.lft_spec_frame)
+    self.lft_spec_oversamp_e = tk.Entry(self.lft_spec_frame)
+
+    self.lft_spec_ramp_delay_l.grid(row=0, column=0, padx=10, pady=5, sticky='W')
+    self.lft_spec_int_time_l.grid(row=1, column=0, padx=10, pady=5, sticky='W')
+    self.lft_spec_oversamp_l.grid(row=2, column=0, padx=10, pady=5, sticky='W')
+    u.set_text(self.lft_spec_ramp_delay_e, '0').grid(row=0, column=1, padx=10, pady=5, sticky='W')
+    u.set_text(self.lft_spec_int_time_e, '0').grid(row=1, column=1, padx=10, pady=5, sticky='W')
+    u.set_text(self.lft_spec_oversamp_e, '0').grid(row=2, column=1, padx=10, pady=5, sticky='W')
+    tk.Button(self.lft_spec_frame, text='Get Settings', background=u.green_color, command=self.check_values_lft_spec).grid(
+        row=3, column=0, pady=10)
+    tk.Button(self.lft_spec_frame, text='Apply Settings', background=u.green_color, command=self.set_values_lft_spec).grid(
+        row=3, column=1, pady=10)
+    self.lft_spec_frame.pack(row=1, column=0, padx=20, pady=10, anchor='w')
+
+    self.rt_spec_ramp_delay_l = tk.Label(self.rt_spec_frame, text='Ramp Delay', background=u.green_color)
+    self.rt_spec_int_time_l = tk.Label(self.rt_spec_frame, text='Integrate Time', background=u.green_color)
+    self.rt_spec_oversamp_l = tk.Label(self.rt_spec_frame, text='Oversampling', background=u.green_color)
+    self.rt_spec_ramp_delay_e = tk.Entry(self.rt_spec_frame)
+    self.rt_spec_int_time_e = tk.Entry(self.rt_spec_frame)
+    self.rt_spec_oversamp_e = tk.Entry(self.rt_spec_frame)
+
+    self.rt_spec_ramp_delay_l.grid(row=0, column=0, padx=10, pady=5, sticky='W')
+    self.rt_spec_int_time_l.grid(row=1, column=0, padx=10, pady=5, sticky='W')
+    self.rt_spec_oversamp_l.grid(row=2, column=0, padx=10, pady=5, sticky='W')
+    u.set_text(self.rt_spec_ramp_delay_e, '0').grid(row=0, column=1, padx=10, pady=5, sticky='W')
+    u.set_text(self.rt_spec_int_time_e, '0').grid(row=1, column=1, padx=10, pady=5, sticky='W')
+    u.set_text(self.rt_spec_oversamp_e, '0').grid(row=2, column=1, padx=10, pady=5, sticky='W')
+    tk.Button(self.rt_spec_frame, text='Get Settings', background=u.green_color, command=self.check_values_rt_spec).grid(
+        row=3, column=0, pady=10)
+    tk.Button(self.rt_spec_frame, text='Apply Settings', background=u.green_color, command=self.set_values_rt_spec).grid(
+        row=3, column=1, pady=10)
+    self.rt_spec_frame.pack(row=1, column=1, padx=20, pady=10, anchor='w')
 
     self.check_values_ch()
-    self.check_values_rt_spec()
-    self.check_values_lft_spec()
     self.check_values_inj()
+    self.check_values_lft_spec()
+    self.check_values_rt_spec()
 
   def check_values_ch(self):
     packet1 = [u.COMMAND_HAPTB, HAPTB_GET_DATA, HAPTB_RD, 0, 0, "TB Get Data", "Y"]
