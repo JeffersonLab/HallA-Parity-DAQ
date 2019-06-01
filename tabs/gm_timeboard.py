@@ -43,7 +43,7 @@ class Timeboard(tk.Frame):
         row=3, column=0, pady=10)
     tk.Button(self.ch_frame, text='Apply Settings', background=u.green_color, command=self.set_values_ch).grid(
         row=3, column=1, pady=10)
-    self.ch_frame.pack(row=0, column=0, padx=20, pady=10)
+    self.ch_frame.grid(row=0, column=0, padx=20, pady=10)
 
     self.inj_ramp_delay_l = tk.Label(self.inj_frame, text='Ramp Delay', background=u.green_color)
     self.inj_int_time_l = tk.Label(self.inj_frame, text='Integrate Time', background=u.green_color)
@@ -62,7 +62,7 @@ class Timeboard(tk.Frame):
         row=3, column=0, pady=10)
     tk.Button(self.inj_frame, text='Apply Settings', background=u.green_color, command=self.set_values_inj).grid(
         row=3, column=1, pady=10)
-    self.inj_frame.pack(row=0, column=1, padx=20, pady=10)
+    self.inj_frame.grid(row=0, column=1, padx=20, pady=10)
 
     self.lft_spec_ramp_delay_l = tk.Label(self.lft_spec_frame, text='Ramp Delay', background=u.green_color)
     self.lft_spec_int_time_l = tk.Label(self.lft_spec_frame, text='Integrate Time', background=u.green_color)
@@ -81,7 +81,7 @@ class Timeboard(tk.Frame):
         row=3, column=0, pady=10)
     tk.Button(self.lft_spec_frame, text='Apply Settings', background=u.green_color, command=self.set_values_lft_spec).grid(
         row=3, column=1, pady=10)
-    self.lft_spec_frame.pack(row=1, column=0, padx=20, pady=10)
+    self.lft_spec_frame.grid(row=1, column=0, padx=20, pady=10)
 
     self.rt_spec_ramp_delay_l = tk.Label(self.rt_spec_frame, text='Ramp Delay', background=u.green_color)
     self.rt_spec_int_time_l = tk.Label(self.rt_spec_frame, text='Integrate Time', background=u.green_color)
@@ -100,7 +100,7 @@ class Timeboard(tk.Frame):
         row=3, column=0, pady=10)
     tk.Button(self.rt_spec_frame, text='Apply Settings', background=u.green_color, command=self.set_values_rt_spec).grid(
         row=3, column=1, pady=10)
-    self.rt_spec_frame.pack(row=1, column=1, padx=20, pady=10)
+    self.rt_spec_frame.grid(row=1, column=1, padx=20, pady=10)
 
     self.check_values_ch()
     self.check_values_inj()
