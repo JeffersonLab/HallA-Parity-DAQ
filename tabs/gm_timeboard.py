@@ -241,7 +241,7 @@ class Timeboard(tk.Frame):
 
   def check_values_inj(self):
     packet1 = [u.COMMAND_HAPTB, HAPTB_GET_DATA, HAPTB_RD, 0, 0, "TB Get Data", "Y"]
-    err_flag, reply1 = u.send_command(u.Crate_RHRS, packet1)
+    err_flag, reply1 = u.send_command(u.Crate_INJ, packet1)
     
     print("I am here where you thought I was")
     print("COMMAND_HAPTB is " + str(u.COMMAND_HAPTB))
@@ -258,7 +258,7 @@ class Timeboard(tk.Frame):
       return
 
     packet2 = [u.COMMAND_HAPTB, HAPTB_GET_DATA, HAPTB_IT, 0, 0, "TB Get Data", "Y"]
-    err_flag, reply2 = u.send_command(u.Crate_RHRS, packet2)
+    err_flag, reply2 = u.send_command(u.Crate_INJ, packet2)
     
     if err_flag == u.SOCK_OK:
       CurrentIT = int(reply2[3])
@@ -271,7 +271,7 @@ class Timeboard(tk.Frame):
       return
 
     packet3 = [u.COMMAND_HAPTB, HAPTB_GET_DATA, HAPTB_OS, 0, 0, "TB Get Data", "Y"]
-    err_flag, reply3 = u.send_command(u.Crate_RHRS, packet3)
+    err_flag, reply3 = u.send_command(u.Crate_INJ, packet3)
     
     if err_flag == u.SOCK_OK:
       CurrentOS = int(reply3[3])
