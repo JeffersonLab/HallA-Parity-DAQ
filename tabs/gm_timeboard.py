@@ -87,7 +87,7 @@ class Timeboard(tk.Frame):
       return
 
     packet2 = [u.COMMAND_HAPTB, HAPTB_GET_DATA, HAPTB_IT, 0, 0, "TB Get Data", "Y"]
-    err_flag, reply2 = u.send_command(u.crate, packet2)
+    err_flag, reply2 = u.send_command(crate, packet2)
     
     if err_flag == u.SOCK_OK:
       CurrentIT = int(reply2[3])
@@ -100,7 +100,7 @@ class Timeboard(tk.Frame):
       return
 
     packet3 = [u.COMMAND_HAPTB, HAPTB_GET_DATA, HAPTB_OS, 0, 0, "TB Get Data", "Y"]
-    err_flag, reply3 = u.send_command(u.crate, packet3)
+    err_flag, reply3 = u.send_command(crate, packet3)
     
     if err_flag == u.SOCK_OK:
       CurrentOS = int(reply3[3])
