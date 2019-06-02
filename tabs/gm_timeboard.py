@@ -521,7 +521,7 @@ class Timeboard(tk.Frame):
     value3 = int(self.inj_oversamp_e.get())
 
     packet1 = [u.COMMAND_HAPTB, HAPTB_SET_DATA, HAPTB_RD, value1, 0, "TB Set Data", "Y"]
-    err_flag, reply1 = u.send_command(u.Crate_RHRS, packet1)
+    err_flag, reply1 = u.send_command(u.Crate_INJ, packet1)
     
     othererror = 0
     if err_flag == u.SOCK_OK:
@@ -544,7 +544,7 @@ class Timeboard(tk.Frame):
       print("Unknown error, cannot set TB parameter")
 
     packet2 = [u.COMMAND_HAPTB, HAPTB_SET_DATA, HAPTB_IT, value2, 0, "TB Set Data", "Y"]
-    err_flag, reply2 = u.send_command(u.Crate_RHRS, packet2)
+    err_flag, reply2 = u.send_command(u.Crate_INJ, packet2)
     
     othererror = 0
     if err_flag == u.SOCK_OK:
@@ -567,7 +567,7 @@ class Timeboard(tk.Frame):
       print("Unknown error, cannot set TB parameter")
 
     packet3 = [u.COMMAND_HAPTB, HAPTB_SET_DATA, HAPTB_OS, value3, 0, "TB Set Data", "Y"]
-    err_flag, reply3 = u.send_command(u.Crate_RHRS, packet3)
+    err_flag, reply3 = u.send_command(u.Crate_INJ, packet3)
     
     othererror = 0
     if err_flag == u.SOCK_OK:

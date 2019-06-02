@@ -17,4 +17,8 @@ class VXWorks(tk.Frame):
         row=0, column=0, padx=2, pady=2)
     tk.Button(self.vx_frame, text='Kill VXWorks Server, Inj', bg=u.green_color, width=30).grid(
         row=1, column=0, padx=2, pady=2)
+    tk.Button(self.vx_frame, text='Kill VXWorks Server, LftSpec', bg=u.green_color, width=30).grid(
+        row=2, column=0, padx=2, pady=2)
+    tk.Button(self.vx_frame, text='Kill VXWorks Server, RtSpec', bg=u.green_color, width=30).grid(
+        row=3, column=0, padx=2, pady=2)
     self.vx_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
