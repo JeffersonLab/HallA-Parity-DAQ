@@ -50,12 +50,23 @@ def send_command(crate_num, packet):
 
   err_flag = lib.GMSockCommand(crate_num, packet[0], packet[1], packet[2], packet[3], packet[4])
 
+  replyBool = "Y"
   ind = 0; reply = []
   fin = open('reply.txt')
-  for line in fin.readlines():
-    if ind < 5: reply += [int(line)]
-    else: reply += [str(line)]
-    ind += 1
+  if (len(packet)>6):
+    replyBool = packet[6]
+    #print("Reply status declared = {}".format(packet[6]))
+  if replyBool == "Y" or replyBool == 'Y':
+    #print("Reply requested")
+    for line in fin.readlines():
+      if ind < 5: 
+        reply += [int(line)]
+      else: 
+        reply += [str(line)]
+      ind += 1
+  else:
+    #print("Reply not requested")
+    reply = "No Reply"
   fin.close()
 
   os.remove('reply.txt')

@@ -101,7 +101,7 @@ class BMW(tk.Frame):
       kill_switch = bool(reply[3])
       print(tab_title + " check_status: kill_switch = " + str(kill_switch))
 
-      if kill_switch: self.ks.bm_l['text'] = 'Kill Switch is ON'
+      if kill_switch: self.ks_bm_l['text'] = 'Kill Switch is ON'
       else: self.ks_bm_l['text'] = 'Kill Switch is OFF'
 
       if bmw_running: 
