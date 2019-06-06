@@ -18,6 +18,7 @@ HAPTB_SET_DATA	=1002
 HAPTB_RD	=201
 HAPTB_IT	=202
 HAPTB_OS	=221
+PATH      ="/adaqfs/home/apar/devices/crl/vqwkTiming.flags"
 
 class Timeboard(tk.Frame):
   def __init__(self, tab):
@@ -106,6 +107,19 @@ class Timeboard(tk.Frame):
     self.check_values_inj()
     self.check_values_lft_spec()
     self.check_values_rt_spec()
+    self.read_defaults()
+
+  def read_defaults(self):
+    infile = open(path,'r')
+    for line in infile:
+      if (line[0] == ';'):
+        continue
+      else:
+        delayCH = int(line[(line.index("HAPTB_delay_CH=") + 14):line.index(",HAPTB_int_time_CH=")])
+    print(delayCH)
+
+  def set_defaults(self):
+    return
 
   def check_values_ch(self):
     packet1 = [u.COMMAND_HAPTB, HAPTB_GET_DATA, HAPTB_RD, 0, 0, "TB Get Data", "Y"]
