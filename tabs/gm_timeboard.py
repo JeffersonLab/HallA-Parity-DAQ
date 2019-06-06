@@ -26,6 +26,7 @@ class Timeboard(tk.Frame):
     self.inj_frame = tk.LabelFrame(tab, text='Inj', background=u.green_color, width=500)
     self.lft_spec_frame = tk.LabelFrame(tab, text='LftSpec', background=u.green_color, width=500)
     self.rt_spec_frame = tk.LabelFrame(tab, text='RtSpec', background=u.green_color, width=500)
+    self.get_defaults_butt = tk.Button(tab, text='Get Defaults', background=u.green_color, width=500)
 
     self.ramp_delay_l = tk.Label(self.ch_frame, text='Ramp Delay', background=u.green_color)
     self.int_time_l = tk.Label(self.ch_frame, text='Integrate Time', background=u.green_color)
@@ -103,6 +104,8 @@ class Timeboard(tk.Frame):
         row=3, column=1, pady=10)
     self.rt_spec_frame.grid(row=1, column=1, padx=20, pady=10)
 
+    self.get_defaults_butt.grid(row=2, column=0, padx=20, pady=10)
+
     self.check_values_ch()
     self.check_values_inj()
     self.check_values_lft_spec()
@@ -110,16 +113,52 @@ class Timeboard(tk.Frame):
     self.read_defaults()
 
   def read_defaults(self):
-    infile = open(path,'r')
+    infile = open(PATH,'r')
     for line in infile:
       if (line[0] == ';'):
         continue
       else:
-        delayCH = int(line[(line.index("HAPTB_delay_CH=") + 14):line.index(",HAPTB_int_time_CH=")])
-    print(delayCH)
+        delayCH = int(line[(line.index("HAPTB_delay_CH=") + 15):line.index(",HAPTB_int_time_CH=")])
+        inttimeCH = int(line[(line.index("HAPTB_int_time_CH=") + 18):line.index(",HAPTB_delay_INJ=")])
+
+        delayINJ = int(line[(line.index("HAPTB_delay_INJ=") + 16):line.index(",HAPTB_int_time_INJ=")])
+        inttimeINJ = int(line[(line.index("HAPTB_int_time_INJ=") + 19):line.index(",HAPTB_delay_RHRS=")])
+
+        delayRHRS = int(line[(line.index("HAPTB_delay_RHRS=") + 17):line.index(",HAPTB_int_time_RHRS=")])
+        inttimeRHRS = int(line[(line.index("HAPTB_int_time_RHRS=") + 20):line.index(",HAPTB_delay_LHRS=")])
+
+        delayLHRS = int(line[(line.index("HAPTB_delay_LHRS=") + 17):line.index(",HAPTB_int_time_LHRS=")])
+        inttimeLHRS = int(line[(line.index("HAPTB_int_time_LHRS=") + 20):])
+    infile.close()
 
   def set_defaults(self):
-    return
+    delayCH = int(self.ramp_delay_e.get())
+    inttimeCH = int(self.int_time_e.get())
+    value3 = int(self.oversamp_e.get())
+
+    delayINJ = int(self.inj_ramp_delay_e.get())
+    inttimeINJ = int(self.inj_int_time_e.get())
+    value3 = int(self.inj_oversamp_e.get())
+
+    delayRHRS = int(self.rt_spec_ramp_delay_e.get())
+    inttimeRHRS = int(self.rt_spec_int_time_e.get())
+    value3 = int(self.rt_spec_oversamp_e.get())
+
+    delayLHRS = int(self.lft_spec_ramp_delay_e.get())
+    inttimeLHRS = int(self.lft_spec_int_time_e.get())
+    value3 = int(self.lft_spec_oversamp_e.get())
+
+    newdefaultstring = "AUTO_GENERATED_CONTENT=1,HAPTB_delay_CH="+str(delayCH)+",HAPTB_int_time_CH="+str(inttimeCH)+",HAPTB_delay_INJ="+str(delayINJ)+",HAPTB_int_time_INJ="+str(inttimeINJ)+",HAPTB_delay_RHRS"+str(delayRHRS)+",HAPTB_int_time_RHRS="+str(inttimeRHRS)+",HAPTB_delay_LHRS="+str(delayLHRS)+",HAPTB_int_time_LHRS="+str(inttimeLHRS)
+    
+    infile.open(PATH,'r+')
+    i = 0
+    for line in infile:
+      i+=1
+      if (line[0] != ';'):
+        line.write(";" + line)
+    infile.write(newdefaultstring)
+    infile.close()
+
 
   def check_values_ch(self):
     packet1 = [u.COMMAND_HAPTB, HAPTB_GET_DATA, HAPTB_RD, 0, 0, "TB Get Data", "Y"]
