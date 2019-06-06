@@ -104,23 +104,50 @@ class Timeboard(tk.Frame):
         row=3, column=1, pady=10)
     self.rt_spec_frame.grid(row=1, column=1, padx=20, pady=10)
 
+    tk.Button(self.defaults_frame, text='Get All', background=u.green_color, command=self.check_all).grid(
+        row=0, column=0, pady=10)
+    tk.Button(self.defaults_frame, text='Set All', background=u.green_color, command=self.set_all).grid(
+        row=0, column=1, pady=10)
     tk.Button(self.defaults_frame, text='Get Defaults', background=u.green_color, command=self.read_defaults).grid(
-        row=0, column=0, pady=10)
+        row=1, column=0, pady=10)
     tk.Button(self.defaults_frame, text='Set Defaults', background=u.green_color, command=self.set_defaults).grid(
-        row=0, column=0, pady=10)
+        row=1, column=1, pady=10)
+
     self.defaults_frame.grid(row=2, column=0, padx=20, pady=10)
 
     self.first_values()
-    self.check_values_ch()
-    self.check_values_inj()
-    self.check_values_lft_spec()
-    self.check_values_rt_spec()
+    self.check_all()
 
   def first_values(self):
     self.read_defaults()
-    print(delayCH)
+
     self.ramp_delay_e.delete(0, tk.END)
     self.ramp_delay_e.insert(0, str(delayCH))
+
+    self.int_time_e.delete(0, tk.END)
+    self.int_time_e.insert(0, str(inttimeCH))
+
+    self.inj_ramp_delay_e.delete(0, tk.END)
+    self.inj_ramp_delay_e.insert(0, str(delayINJ))
+
+    self.inj_int_time_e.delete(0, tk.END)
+    self.inj_int_time_e.insert(0, str(inttimeINJ))
+
+    self.lft_spec_ramp_delay_e.delete(0, tk.END)
+    self.lft_spec_ramp_delay_e.insert(0, str(delayLHRS))
+
+    self.lft_spec_int_time_e.delete(0, tk.END)
+    self.lft_spec_int_time_e.insert(0, str(inttimeLHRS))
+
+    self.rt_spec_ramp_delay_e.delete(0, tk.END)
+    self.rt_spec_ramp_delay_e.insert(0, str(delayRHRS))
+
+    self.rt_spec_int_time_e.delete(0, tk.END)
+    self.rt_spec_int_time_e.insert(0, str(inttimeRHRS))
+
+    #self.oversamp_e.delete(0, tk.END)
+    #self.oversamp_e.insert(0, str(osCH))
+    #self.set_all()
 
   def read_defaults(self):
     global delayCH
@@ -178,6 +205,17 @@ class Timeboard(tk.Frame):
     infile.write(newdefaultstring)
     infile.close()
 
+  def check_all(self):
+    self.check_values_ch()
+    self.check_values_inj()
+    self.check_values_lft_spec()
+    self.check_values_rt_spec()
+
+  def set_all(self):
+    self.set_values_ch()
+    self.set_values_inj()
+    self.set_values_lft_spec()
+    self.set_values_rt_spec()
 
   def check_values_ch(self):
     packet1 = [u.COMMAND_HAPTB, HAPTB_GET_DATA, HAPTB_RD, 0, 0, "TB Get Data", "Y"]
