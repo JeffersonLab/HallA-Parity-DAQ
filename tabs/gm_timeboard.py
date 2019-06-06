@@ -196,14 +196,37 @@ class Timeboard(tk.Frame):
 
     newdefaultstring = "AUTO_GENERATED_CONTENT=1,HAPTB_delay_CH="+str(delayCH)+",HAPTB_int_time_CH="+str(inttimeCH)+",HAPTB_delay_INJ="+str(delayINJ)+",HAPTB_int_time_INJ="+str(inttimeINJ)+",HAPTB_delay_RHRS"+str(delayRHRS)+",HAPTB_int_time_RHRS="+str(inttimeRHRS)+",HAPTB_delay_LHRS="+str(delayLHRS)+",HAPTB_int_time_LHRS="+str(inttimeLHRS)
     
-    infile = open(PATH,'r+')
+    #infile = open(PATH,'r+')
+    #i = 0
+    #for line in infile:
+    #  i+=1
+    #  if (line[0] != ';'):
+    #    infile.write(";" + line)
+    #infile.write(newdefaultstring)
+    #infile.close()
+
+    buff = []
     i = 0
+    infile = open(PATH,'r')
     for line in infile:
-      i+=1
+      buff.append(line)
       if (line[0] != ';'):
-        infile.write(";" + line)
-    infile.write(newdefaultstring)
+        buff[i] = (";" + line)
+      i+=1
     infile.close()
+
+    buff.append(newdefaultstring)
+
+    with open(PATH, 'a') as f:
+      # Get the previous contents
+      lines = f.readlines()
+
+      # Overwrite
+      for i in range(len(buff)):
+        f.write(buff[i])
+      if len(lines) > len(buff):
+        for i in range(len(buff), len(lines)):
+          f.write(lines[i])
 
   def check_all(self):
     self.check_values_ch()
