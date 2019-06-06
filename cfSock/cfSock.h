@@ -18,7 +18,8 @@
 #define MAGIC_COOKIE -7654321
 #define SOCK_ADDR_SIZE sizeof(struct sockaddr_in))
 
-
+int IgnoreRuns;
+int Running;
 
 /* structure for requests from clients to server */
 
@@ -35,4 +36,10 @@ struct request
    int  msgLen;                       // length of message text
 };
 
+void setIgnoreRun(int flag);
 
+int getIgnoreRun();
+
+void setRunFlag(int flag);
+
+int getRunFlag();
