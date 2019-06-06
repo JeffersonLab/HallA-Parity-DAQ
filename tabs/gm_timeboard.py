@@ -105,15 +105,15 @@ class Timeboard(tk.Frame):
     self.rt_spec_frame.grid(row=1, column=1, padx=20, pady=10)
 
     tk.Button(self.defaults_frame, text='Get All', background=u.green_color, command=self.check_all).grid(
-        row=0, column=0, pady=10)
+        row=0, column=0, padx=10, pady=10)
     tk.Button(self.defaults_frame, text='Set All', background=u.green_color, command=self.set_all).grid(
-        row=0, column=1, pady=10)
+        row=0, column=1, padx=10, pady=10)
     tk.Button(self.defaults_frame, text='Get Defaults', background=u.green_color, command=self.read_defaults).grid(
-        row=1, column=0, pady=10)
+        row=1, column=0, padx=10, pady=10)
     tk.Button(self.defaults_frame, text='Set Defaults', background=u.green_color, command=self.set_defaults).grid(
-        row=1, column=1, pady=10)
+        row=1, column=1, padx=10, pady=10)
 
-    self.defaults_frame.grid(row=2, column=0, padx=20, pady=10)
+    self.defaults_frame.grid(row=2, column=0, padx=20, pady=10, columnspan=2)
 
     self.first_values()
     self.check_all()
