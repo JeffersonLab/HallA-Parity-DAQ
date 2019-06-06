@@ -26,7 +26,7 @@ class Timeboard(tk.Frame):
     self.inj_frame = tk.LabelFrame(tab, text='Inj', background=u.green_color, width=500)
     self.lft_spec_frame = tk.LabelFrame(tab, text='LftSpec', background=u.green_color, width=500)
     self.rt_spec_frame = tk.LabelFrame(tab, text='RtSpec', background=u.green_color, width=500)
-    self.defaults_frame = tk.Button(tab, text='Defaults', background=u.green_color, width=500)
+    self.defaults_frame = tk.LabelFrame(tab, text='Defaults', background=u.green_color, width=1000)
 
     self.ramp_delay_l = tk.Label(self.ch_frame, text='Ramp Delay', background=u.green_color)
     self.int_time_l = tk.Label(self.ch_frame, text='Integrate Time', background=u.green_color)
@@ -196,12 +196,12 @@ class Timeboard(tk.Frame):
 
     newdefaultstring = "AUTO_GENERATED_CONTENT=1,HAPTB_delay_CH="+str(delayCH)+",HAPTB_int_time_CH="+str(inttimeCH)+",HAPTB_delay_INJ="+str(delayINJ)+",HAPTB_int_time_INJ="+str(inttimeINJ)+",HAPTB_delay_RHRS"+str(delayRHRS)+",HAPTB_int_time_RHRS="+str(inttimeRHRS)+",HAPTB_delay_LHRS="+str(delayLHRS)+",HAPTB_int_time_LHRS="+str(inttimeLHRS)
     
-    infile.open(PATH,'r+')
+    infile = open(PATH,'r+')
     i = 0
     for line in infile:
       i+=1
       if (line[0] != ';'):
-        line.write(";" + line)
+        infile.write(";" + line)
     infile.write(newdefaultstring)
     infile.close()
 
