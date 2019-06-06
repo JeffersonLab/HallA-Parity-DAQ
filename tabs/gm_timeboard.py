@@ -26,7 +26,7 @@ class Timeboard(tk.Frame):
     self.inj_frame = tk.LabelFrame(tab, text='Inj', background=u.green_color, width=500)
     self.lft_spec_frame = tk.LabelFrame(tab, text='LftSpec', background=u.green_color, width=500)
     self.rt_spec_frame = tk.LabelFrame(tab, text='RtSpec', background=u.green_color, width=500)
-    self.get_defaults_butt = tk.Button(tab, text='Get Defaults', background=u.green_color, width=500)
+    self.defaults_frame = tk.Button(tab, text='Defaults', background=u.green_color, width=500)
 
     self.ramp_delay_l = tk.Label(self.ch_frame, text='Ramp Delay', background=u.green_color)
     self.int_time_l = tk.Label(self.ch_frame, text='Integrate Time', background=u.green_color)
@@ -104,7 +104,9 @@ class Timeboard(tk.Frame):
         row=3, column=1, pady=10)
     self.rt_spec_frame.grid(row=1, column=1, padx=20, pady=10)
 
-    self.get_defaults_butt.grid(row=2, column=0, padx=20, pady=10)
+    tk.Button(self.defaults_frame, text='Get Defaults', background=u.green_color, command=self.read_defaults).grid(
+        row=0, column=0, pady=10)
+    self.defaults_frame.grid(row=2, column=0, padx=20, pady=10)
 
     self.check_values_ch()
     self.check_values_inj()
