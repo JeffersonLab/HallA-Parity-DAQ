@@ -106,15 +106,32 @@ class Timeboard(tk.Frame):
 
     tk.Button(self.defaults_frame, text='Get Defaults', background=u.green_color, command=self.read_defaults).grid(
         row=0, column=0, pady=10)
+    tk.Button(self.defaults_frame, text='Set Defaults', background=u.green_color, command=self.set_defaults).grid(
+        row=0, column=0, pady=10)
     self.defaults_frame.grid(row=2, column=0, padx=20, pady=10)
 
+    self.first_values()
     self.check_values_ch()
     self.check_values_inj()
     self.check_values_lft_spec()
     self.check_values_rt_spec()
+
+  def first_values(self):
     self.read_defaults()
+    print(delayCH)
+    self.ramp_delay_e.delete(0, tk.END)
+    self.ramp_delay_e.insert(0, str(delayCH))
 
   def read_defaults(self):
+    global delayCH
+    global inttimeCH
+    global delayINJ
+    global inttimeINJ
+    global delayRHRS
+    global inttimeRHRS
+    global delayLHRS
+    global inttimeLHRS
+
     infile = open(PATH,'r')
     for line in infile:
       if (line[0] == ';'):
