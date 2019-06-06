@@ -13,9 +13,10 @@ import tabs.gm_bmw as bmw
 import tabs.gm_scan as scan_util
 import tabs.gm_timeboard as tmbd
 import tabs.gm_vqwk as vqwk
-import tabs.gm_adc18 as adc18s
-import tabs.gm_adc18_2 as adc18s_2
-import tabs.gm_vxworks as vxworks
+#import tabs.gm_adc18 as adc18s
+import tabs.gm_adc18_rtspec as adc18s_rtspec
+import tabs.gm_adc18_lftspec as adc18s_lftspec
+#import tabs.gm_vxworks as vxworks
 import utils as u
 
 class GreenMonster:
@@ -50,9 +51,11 @@ class GreenMonster:
         tab_control = ttk.Notebook(expt_tab)
         tab_titles = [('TimeBoard', tmbd.Timeboard), 
                       ('VQWK ADCs', vqwk.VQWK), 
-                      ('ADC18s, CH', adc18s.ADC18),
-                      ('ADC18s, RtSpec', adc18s_2.ADC18), 
-                      ('VXWorks Server', vxworks.VXWorks)]
+                      #('ADC18s, CH', adc18s.ADC18),
+                      ('ADC18s, RtSpec', adc18s_rtspec.ADC18), 
+                      ('ADC18s, LftSpec',adc18s_lftspec.ADC18),
+                      #('VXWorks Server', vxworks.VXWorks)
+                      ]
         for title, fn in tab_titles:
             sub_tab = ttk.Frame(tab_control, width=800, height=600, style="My.TFrame")
             tab_control.add(sub_tab, text=title)
