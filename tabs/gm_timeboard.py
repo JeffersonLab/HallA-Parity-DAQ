@@ -115,39 +115,9 @@ class Timeboard(tk.Frame):
 
     self.defaults_frame.grid(row=2, column=0, padx=20, pady=10, columnspan=2)
 
-    self.first_values()
-    self.check_all()
-
-  def first_values(self):
     self.read_defaults()
-
-    self.ramp_delay_e.delete(0, tk.END)
-    self.ramp_delay_e.insert(0, str(delayCH))
-
-    self.int_time_e.delete(0, tk.END)
-    self.int_time_e.insert(0, str(inttimeCH))
-
-    self.inj_ramp_delay_e.delete(0, tk.END)
-    self.inj_ramp_delay_e.insert(0, str(delayINJ))
-
-    self.inj_int_time_e.delete(0, tk.END)
-    self.inj_int_time_e.insert(0, str(inttimeINJ))
-
-    self.lft_spec_ramp_delay_e.delete(0, tk.END)
-    self.lft_spec_ramp_delay_e.insert(0, str(delayLHRS))
-
-    self.lft_spec_int_time_e.delete(0, tk.END)
-    self.lft_spec_int_time_e.insert(0, str(inttimeLHRS))
-
-    self.rt_spec_ramp_delay_e.delete(0, tk.END)
-    self.rt_spec_ramp_delay_e.insert(0, str(delayRHRS))
-
-    self.rt_spec_int_time_e.delete(0, tk.END)
-    self.rt_spec_int_time_e.insert(0, str(inttimeRHRS))
-
-    #self.oversamp_e.delete(0, tk.END)
-    #self.oversamp_e.insert(0, str(osCH))
-    #self.set_all()
+    self.set_all()
+    self.check_all()
 
   def read_defaults(self):
     global delayCH
@@ -174,8 +144,32 @@ class Timeboard(tk.Frame):
         inttimeRHRS = int(line[(line.index("HAPTB_int_time_RHRS=") + 20):line.index(",HAPTB_delay_LHRS=")])
 
         delayLHRS = int(line[(line.index("HAPTB_delay_LHRS=") + 17):line.index(",HAPTB_int_time_LHRS=")])
-        inttimeLHRS = int(line[(line.index("HAPTB_int_time_LHRS=") + 20):])
+        inttimeLHRS = int(line[(line.index("HAPTB_int_time_LHRS=") + 20):line.index("\n")])
     infile.close()
+
+    self.ramp_delay_e.delete(0, tk.END)
+    self.ramp_delay_e.insert(0, str(delayCH))
+
+    self.int_time_e.delete(0, tk.END)
+    self.int_time_e.insert(0, str(inttimeCH))
+
+    self.inj_ramp_delay_e.delete(0, tk.END)
+    self.inj_ramp_delay_e.insert(0, str(delayINJ))
+
+    self.inj_int_time_e.delete(0, tk.END)
+    self.inj_int_time_e.insert(0, str(inttimeINJ))
+
+    self.lft_spec_ramp_delay_e.delete(0, tk.END)
+    self.lft_spec_ramp_delay_e.insert(0, str(delayLHRS))
+
+    self.lft_spec_int_time_e.delete(0, tk.END)
+    self.lft_spec_int_time_e.insert(0, str(inttimeLHRS))
+
+    self.rt_spec_ramp_delay_e.delete(0, tk.END)
+    self.rt_spec_ramp_delay_e.insert(0, str(delayRHRS))
+
+    self.rt_spec_int_time_e.delete(0, tk.END)
+    self.rt_spec_int_time_e.insert(0, str(inttimeRHRS))
 
   def set_defaults(self):
     delayCH = int(self.ramp_delay_e.get())
@@ -194,16 +188,7 @@ class Timeboard(tk.Frame):
     inttimeLHRS = int(self.lft_spec_int_time_e.get())
     value3 = int(self.lft_spec_oversamp_e.get())
 
-    newdefaultstring = "AUTO_GENERATED_CONTENT=1,HAPTB_delay_CH="+str(delayCH)+",HAPTB_int_time_CH="+str(inttimeCH)+",HAPTB_delay_INJ="+str(delayINJ)+",HAPTB_int_time_INJ="+str(inttimeINJ)+",HAPTB_delay_RHRS"+str(delayRHRS)+",HAPTB_int_time_RHRS="+str(inttimeRHRS)+",HAPTB_delay_LHRS="+str(delayLHRS)+",HAPTB_int_time_LHRS="+str(inttimeLHRS)
-    
-    #infile = open(PATH,'r+')
-    #i = 0
-    #for line in infile:
-    #  i+=1
-    #  if (line[0] != ';'):
-    #    infile.write(";" + line)
-    #infile.write(newdefaultstring)
-    #infile.close()
+    newdefaultstring = "AUTO_GENERATED_CONTENT=1,HAPTB_delay_CH="+str(delayCH)+",HAPTB_int_time_CH="+str(inttimeCH)+",HAPTB_delay_INJ="+str(delayINJ)+",HAPTB_int_time_INJ="+str(inttimeINJ)+",HAPTB_delay_RHRS="+str(delayRHRS)+",HAPTB_int_time_RHRS="+str(inttimeRHRS)+",HAPTB_delay_LHRS="+str(delayLHRS)+",HAPTB_int_time_LHRS="+str(inttimeLHRS)+"\n"
 
     buff = []
     i = 0
@@ -217,16 +202,11 @@ class Timeboard(tk.Frame):
 
     buff.append(newdefaultstring)
 
-    with open(PATH, 'a') as f:
-      # Get the previous contents
-      lines = f.readlines()
+    outfile = open(PATH,'w')
+    for i in range(len(buff)):
+      outfile.write(buff[i])
+    outfile.close()
 
-      # Overwrite
-      for i in range(len(buff)):
-        f.write(buff[i])
-      if len(lines) > len(buff):
-        for i in range(len(buff), len(lines)):
-          f.write(lines[i])
 
   def check_all(self):
     self.check_values_ch()
@@ -723,3 +703,4 @@ class Timeboard(tk.Frame):
       print("Unknown error, cannot set TB parameter")
 
     self.check_values_inj()
+
