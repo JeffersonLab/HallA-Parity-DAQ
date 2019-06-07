@@ -22,11 +22,11 @@ PATH      ="/adaqfs/home/apar/devices/crl/vqwkTiming.flags"
 
 class Timeboard(tk.Frame):
   def __init__(self, tab):
-    self.ch_frame = tk.LabelFrame(tab, text='CH', background=u.green_color, width=500)
-    self.inj_frame = tk.LabelFrame(tab, text='Inj', background=u.green_color, width=500)
-    self.lft_spec_frame = tk.LabelFrame(tab, text='LftSpec', background=u.green_color, width=500)
-    self.rt_spec_frame = tk.LabelFrame(tab, text='RtSpec', background=u.green_color, width=500)
-    self.defaults_frame = tk.LabelFrame(tab, text='Defaults', background=u.green_color, width=1000)
+    self.ch_frame = tk.LabelFrame(tab, text='Counting House', background=u.green_color, width=500)
+    self.inj_frame = tk.LabelFrame(tab, text='Injector', background=u.green_color, width=500)
+    self.lft_spec_frame = tk.LabelFrame(tab, text='Left Spectrometer', background=u.green_color, width=500)
+    self.rt_spec_frame = tk.LabelFrame(tab, text='Right Spectrometer', background=u.green_color, width=500)
+    self.defaults_frame = tk.LabelFrame(tab, text='Default Controls', background=u.green_color, width=1000)
 
     self.ramp_delay_l = tk.Label(self.ch_frame, text='Ramp Delay', background=u.green_color)
     self.int_time_l = tk.Label(self.ch_frame, text='Integrate Time', background=u.green_color)
@@ -104,14 +104,15 @@ class Timeboard(tk.Frame):
         row=3, column=1, pady=10)
     self.rt_spec_frame.grid(row=1, column=1, padx=20, pady=10)
 
-    tk.Button(self.defaults_frame, text='Get All', background=u.green_color, command=self.check_all).grid(
+    tk.Button(self.defaults_frame, text='Get All Values From Boards', background=u.green_color, command=self.check_all).grid(
         row=0, column=0, padx=10, pady=10)
-    tk.Button(self.defaults_frame, text='Set All', background=u.green_color, command=self.set_all).grid(
+    tk.Button(self.defaults_frame, text='Set All Values to Boards', background=u.green_color, command=self.set_all).grid(
         row=0, column=1, padx=10, pady=10)
-    tk.Button(self.defaults_frame, text='Get Defaults', background=u.green_color, command=self.read_defaults).grid(
+    tk.Button(self.defaults_frame, text='Get Default Values From File', background=u.green_color, command=self.read_defaults).grid(
         row=1, column=0, padx=10, pady=10)
-    tk.Button(self.defaults_frame, text='Set Defaults', background=u.green_color, command=self.set_defaults).grid(
+    tk.Button(self.defaults_frame, text='Write Values to Defaults File', background=u.green_color, command=self.set_defaults).grid(
         row=1, column=1, padx=10, pady=10)
+
 
     self.defaults_frame.grid(row=2, column=0, padx=20, pady=10, columnspan=2)
 
