@@ -18,7 +18,7 @@ VQWK_SET_DATA	=7002
 VQWK_SPB	=701
 VQWK_GD		=702
 VQWK_NB		=703
-
+PATH      ="/adaqfs/home/apar/devices/crl/injector/g0inj.flags"
 
 class VQWK(tk.Frame):
   def __init__(self, tab):
@@ -26,6 +26,7 @@ class VQWK(tk.Frame):
     self.inj_frame = tk.LabelFrame(tab, text='Inj', background=u.green_color, width=500)
     self.lft_spec_frame = tk.LabelFrame(tab, text='LftSpec', background=u.green_color, width=500)
     self.rt_spec_frame = tk.LabelFrame(tab, text='RtSpec', background=u.green_color, width=500)
+    self.defaults_frame = tk.LabelFrame(tab, text='Defaults', background=u.green_color, width=1000)
 
     self.samples_ch_l = tk.Label(self.ch_frame, text='Samples Per Block', background=u.green_color)
     self.gate_ch_l = tk.Label(self.ch_frame, text='Gate Delay', background=u.green_color)
@@ -63,10 +64,144 @@ class VQWK(tk.Frame):
     self.fill_rt_spec_frame()
     self.rt_spec_frame.grid(row=1, column=1, padx=20, pady=10)
 
+    tk.Button(self.defaults_frame, text='Get All', background=u.green_color, command=self.check_all).grid(
+        row=0, column=0, padx=10, pady=10)
+    tk.Button(self.defaults_frame, text='Set All', background=u.green_color, command=self.set_all).grid(
+        row=0, column=1, padx=10, pady=10)
+    tk.Button(self.defaults_frame, text='Get Defaults', background=u.green_color, command=self.read_defaults).grid(
+        row=1, column=0, padx=10, pady=10)
+    tk.Button(self.defaults_frame, text='Set Defaults', background=u.green_color, command=self.set_defaults).grid(
+        row=1, column=1, padx=10, pady=10)
+
+    self.defaults_frame.grid(row=2, column=0, padx=20, pady=10, columnspan=2)
+
+    self.read_defaults()
+    self.set_all()
+    self.check_all()
+
+    def read_defaults(self):
+    global samplesCH
+    global gateCH
+    global blocksCH
+    global samplesINJ
+    global gateINJ
+    global blocksINJ
+    global samplesRHRS
+    global gateRHRS
+    global blocksRHRS
+    global samplesLHRS
+    global gateLHRS
+    global blocksLHRS
+
+    infile = open(PATH,'r')
+    for line in infile:
+      if (line[0] == ';'):
+        continue
+      else:
+        samplesCH = int(line[(line.index("CHvqwksamples=") + 14):line.index(", CHvqwkdelay=")])
+        gateCH = int(line[(line.index("CHvqwkdelay=") + 12):line.index(", CHvqwkblocks=")])
+        blocksCH = int(line[(line.index("CHvqwkblocks=") + 13):line.index(", CHvqwkperiod=")])
+
+        samplesINJ = int(line[(line.index("INJvqwksamples=") + 14):line.index(", INJvqwkdelay=")])
+        gateINJ = int(line[(line.index("INJvqwkdelay=") + 12):line.index(", INJvqwkblocks=")])
+        blocksINJ = int(line[(line.index("INJvqwkblocks=") + 13):line.index(", INJvqwkperiod=")])
+
+        samplesRHRS = int(line[(line.index("RHRSvqwksamples=") + 14):line.index(", RHRSvqwkdelay=")])
+        gateRHRS = int(line[(line.index("RHRSvqwkdelay=") + 12):line.index(", RHRSvqwkblocks=")])
+        blocksRHRS = int(line[(line.index("RHRSvqwkblocks=") + 13):line.index(", RHRSvqwkperiod=")])
+
+        samplesLHRS = int(line[(line.index("LHRSvqwksamples=") + 14):line.index(", LHRSvqwkdelay=")])
+        gateLHRS = int(line[(line.index("LHRSvqwkdelay=") + 12):line.index(", LHRSvqwkblocks=")])
+        blocksLHRS = int(line[(line.index("LHRSvqwkblocks=") + 13):line.index(", LHRSvqwkperiod=")])
+    infile.close()
+
+    self.samples_ch_e.delete(0, tk.END)
+    self.samples_ch_e.insert(0, str(samplesCH))
+
+    self.gate_ch_e.delete(0, tk.END)
+    self.gate_ch_e.insert(0, str(gateCH))
+
+    self.blocks_ch_e.delete(0, tk.END)
+    self.blocks_ch_e.insert(0, str(blocksCH))
+
+    self.samples_inj_e.delete(0, tk.END)
+    self.samples_inj_e.insert(0, str(samplesINJ))
+
+    self.gate_inj_e.delete(0, tk.END)
+    self.gate_inj_e.insert(0, str(gateINJ))
+
+    self.blocks_inj_e.delete(0, tk.END)
+    self.blocks_inj_e.insert(0, str(blocksINJ))
+
+    self.samples_rt_spec_e.delete(0, tk.END)
+    self.samples_rt_spec_e.insert(0, str(samplesRHRS))
+
+    self.gate_rt_spec_e.delete(0, tk.END)
+    self.gate_rt_spec_e.insert(0, str(gateRHRS))
+
+    self.blocks_rt_spec_e.delete(0, tk.END)
+    self.blocks_rt_spec_e.insert(0, str(blocksRHRS))
+
+    self.samples_lft_spec_e.delete(0, tk.END)
+    self.samples_lft_spec_e.insert(0, str(samplesLHRS))
+
+    self.gate_lft_spec_e.delete(0, tk.END)
+    self.gate_lft_spec_e.insert(0, str(gateLHRS))
+
+    self.blocks_lft_spec_e.delete(0, tk.END)
+    self.blocks_lft_spec_e.insert(0, str(blocksLHRS))
+
+  def set_defaults(self):
+    samplesCH = int(self.samples_ch_e.get())
+    gateCH = int(self.gate_ch_e.get())
+    blocksCH = int(self.blocks_ch_e.get())
+
+    samplesINJ = int(self.samples_inj_e.get())
+    gateINJ = int(self.gate_inj_e.get())
+    blocksINJ = int(self.blocks_inj_e.get())
+
+    samplesRHRS = int(self.samples_rt_spec_e.get())
+    gateRHRS = int(self.gate_rt_spec_e.get())
+    blocksRHRS = int(self.blocks_rt_spec_e.get())
+
+    samplesLHRS = int(self.samples_lft_spec_e.get())
+    gateLHRS = int(self.gate_lft_spec_e.get())
+    blocksLHRS = int(self.blocks_lft_spec_e.get())
+
+    newdefaultstringCH = "CHcrateheader=3, CHbadc=0x80, CHnadc=10, CHvqwksamples="+str(samplesCH)+", CHvqwkdelay="+str(gateCH)+", CHvqwkblocks="+str(blocksCH)+", CHvqwkperiod=0, CHvqwkinternal=2, CHnscaler=1, "
+    newdefaultstringINJ = "INJcrateheader=3, INJbadc=0x80, INJnadc=10, INJvqwksamples="+str(samplesINJ)+", INJvqwkdelay="+str(gateINJ)+", INJvqwkblocks="+str(blocksINJ)+", INJvqwkperiod=0, INJvqwkinternal=2, INJnscaler=1, "
+    newdefaultstringRHRS = "RHRScrateheader=3, RHRSbadc=0x80, RHRSnadc=10, RHRSvqwksamples="+str(samplesRHRS)+", RHRSvqwkdelay="+str(gateRHRS)+", RHRSvqwkblocks="+str(blocksRHRS)+", RHRSvqwkperiod=0, RHRSvqwkinternal=2, RHRSnscaler=1, "
+    newdefaultstringLHRS = "LHRScrateheader=3, LHRSbadc=0x80, LHRSnadc=10, LHRSvqwksamples="+str(samplesLHRS)+", LHRSvqwkdelay="+str(gateLHRS)+", LHRSvqwkblocks="+str(blocksLHRS)+", LHRSvqwkperiod=0, LHRSvqwkinternal=2, LHRSnscaler=1\n"
+
+    buff = []
+    i = 0
+    infile = open(PATH,'r')
+    for line in infile:
+      buff.append(line)
+      if (line[0] != ';'):
+        buff[i] = (";" + line)
+      i+=1
+    infile.close()
+
+    buff.append(newdefaultstringCH + newdefaultstringINJ + newdefaultstringRHRS + newdefaultstringLHRS)
+
+    outfile = open(PATH,'w')
+    for i in range(len(buff)):
+      outfile.write(buff[i])
+    outfile.close()
+
+
+  def check_all(self):
     self.check_values_ch()
     self.check_values_inj()
     self.check_values_lft_spec()
     self.check_values_rt_spec()
+
+  def set_all(self):
+    self.set_values_ch()
+    self.set_values_inj()
+    self.set_values_lft_spec()
+    self.set_values_rt_spec()
 
   def fill_ch_frame(self):
     self.samples_ch_l.grid(row=0, column=0, padx=10, pady=5, sticky='W')
