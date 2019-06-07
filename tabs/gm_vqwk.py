@@ -79,7 +79,7 @@ class VQWK(tk.Frame):
     self.set_all()
     self.check_all()
 
-    def read_defaults(self):
+  def read_defaults(self):
     global samplesCH
     global gateCH
     global blocksCH
@@ -102,17 +102,17 @@ class VQWK(tk.Frame):
         gateCH = int(line[(line.index("CHvqwkdelay=") + 12):line.index(", CHvqwkblocks=")])
         blocksCH = int(line[(line.index("CHvqwkblocks=") + 13):line.index(", CHvqwkperiod=")])
 
-        samplesINJ = int(line[(line.index("INJvqwksamples=") + 14):line.index(", INJvqwkdelay=")])
-        gateINJ = int(line[(line.index("INJvqwkdelay=") + 12):line.index(", INJvqwkblocks=")])
-        blocksINJ = int(line[(line.index("INJvqwkblocks=") + 13):line.index(", INJvqwkperiod=")])
+        samplesINJ = int(line[(line.index("INJvqwksamples=") + 15):line.index(", INJvqwkdelay=")])
+        gateINJ = int(line[(line.index("INJvqwkdelay=") + 13):line.index(", INJvqwkblocks=")])
+        blocksINJ = int(line[(line.index("INJvqwkblocks=") + 14):line.index(", INJvqwkperiod=")])
 
-        samplesRHRS = int(line[(line.index("RHRSvqwksamples=") + 14):line.index(", RHRSvqwkdelay=")])
-        gateRHRS = int(line[(line.index("RHRSvqwkdelay=") + 12):line.index(", RHRSvqwkblocks=")])
-        blocksRHRS = int(line[(line.index("RHRSvqwkblocks=") + 13):line.index(", RHRSvqwkperiod=")])
+        samplesRHRS = int(line[(line.index("RHRSvqwksamples=") + 16):line.index(", RHRSvqwkdelay=")])
+        gateRHRS = int(line[(line.index("RHRSvqwkdelay=") + 14):line.index(", RHRSvqwkblocks=")])
+        blocksRHRS = int(line[(line.index("RHRSvqwkblocks=") + 15):line.index(", RHRSvqwkperiod=")])
 
-        samplesLHRS = int(line[(line.index("LHRSvqwksamples=") + 14):line.index(", LHRSvqwkdelay=")])
-        gateLHRS = int(line[(line.index("LHRSvqwkdelay=") + 12):line.index(", LHRSvqwkblocks=")])
-        blocksLHRS = int(line[(line.index("LHRSvqwkblocks=") + 13):line.index(", LHRSvqwkperiod=")])
+        samplesLHRS = int(line[(line.index("LHRSvqwksamples=") + 16):line.index(", LHRSvqwkdelay=")])
+        gateLHRS = int(line[(line.index("LHRSvqwkdelay=") + 14):line.index(", LHRSvqwkblocks=")])
+        blocksLHRS = int(line[(line.index("LHRSvqwkblocks=") + 15):line.index(", LHRSvqwkperiod=")])
     infile.close()
 
     self.samples_ch_e.delete(0, tk.END)
