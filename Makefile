@@ -55,6 +55,9 @@ ADC18 = adc18/hapAdc18Test.o adc18/hapAdc18Count.o \
 	adc18/hapAdc18Inj.o  adc18/hapAdc18UVa.o
 BMW = bmw/bmwClient.o bmw/bmw_config.o  bmw/bmwDummy.o bmw/bmw_config_interactive.o
 TB = timebrd/HAPTB_util.o timebrd/HAPTB_config.o
+TB_2 = timebrd_double/HAPTB_util.o
+TB_SCAN = timebrd_scan/HAPTB_scan.o 
+TB_SCAN_SET = timebrd_scan_set/HAPTB_scan_set.o 
 AUXTB = auxtimebrd/AUXTB_util.o
 SOCK =  cfSock/cfSockSer.o cfSock/cfSockCli.o
 SCAN = scan/SCAN_util.o scan/SCAN_config.o
@@ -72,6 +75,9 @@ TEMPEDMA = tempeDma/usrTempeDma.o
 adc16: $(ADC16)
 adc18: $(ADC18)
 timebrd: $(TB)
+timebrd_double: $(TB_2)
+timebrd_scan: $(TB_SCAN)
+timebrd_scan_set: $(TB_SCAN_SET)
 auxtimebrd: $(AUXTB)
 bmw: $(BMW)
 socket: $(SOCK)
@@ -81,8 +87,8 @@ auto: $(AUTO)
 flexiok: $(FLEXIOK)
 flexiop: $(FLEXIOP)
 vqwk: $(VQWK)
-vxall: $(ADC16) $(ADC18) $(BMW) $(SOCK) $(TB)  $(SCAN) $(CAFFB) $(AUXTB) $(AUTO) $(FLEXIOK) $(FLEXIOP) $(VQWK) $(SIS3801) $(STR7200) $(TEMPEDMA)
-all: $(ADC16) $(ADC18) $(BMW) $(SOCK) $(TB) $(SCAN) $(CAFFB) $(GMPROG)  $(AUXTB) $(AUTO) $(FLEXIOK) $(FLEXIOP) $(VQWK) $(SIS3801) $(STR7200) $(TEMPEDMA)
+vxall: $(ADC16) $(ADC18) $(BMW) $(SOCK) $(TB) $(TB_2) $(TB_SCAN) $(TB_SCAN_SET) $(SCAN) $(CAFFB) $(AUXTB) $(AUTO) $(FLEXIOK) $(FLEXIOP) $(VQWK) $(SIS3801) $(STR7200) $(TEMPEDMA)
+all: $(ADC16) $(ADC18) $(BMW) $(SOCK) $(TB) $(TB_2) $(TB_SCAN) $(TB_SCAN_SET) $(SCAN) $(CAFFB) $(GMPROG)  $(AUXTB) $(AUTO) $(FLEXIOK) $(FLEXIOP) $(VQWK) $(SIS3801) $(STR7200) $(TEMPEDMA)
 
 version: clean
 	mkdir $(VERS) 
@@ -100,7 +106,10 @@ clean:
 	rm -f bmw/core bmw/*.o bmw/*.d
 	rm -f cfSock/core cfSock/*.o cfSock/*.d
 	rm -f timebrd/core timebrd/*.o timebrd/*.d
+	rm -f timebrd_scan/core timebrd_scan/*.o timebrd_scan/*.d
+	rm -f timebrd_scan_set/core timebrd_scan_set/*.o timebrd_scan_set/*.d
 	rm -f auxtimebrd/core auxtimebrd/*.o auxtimebrd/*.d
+	rm -f timebrd_double/core timebrd_double/*.o timebrd_double/*.d
 	rm -f scan/core scan/*.o scan/*.d
 	rm -f caFFB/core caFFB/*.o caFFB/*.d
 	rm -f caFFB/core caFFB/*.o caFFB/*.d
@@ -219,6 +228,19 @@ timebrd/HAPTB_util.o: timebrd/HAPTB_util.c timebrd/HAPTB.h    \
 timebrd/HAPTB_config.o: timebrd/HAPTB_config.c timebrd/HAPTB_cf_commands.h
 	cd timebrd; rm -f $@; \
 	ccppc  -c $(CCVXFLAGS) HAPTB_config.c
+
+timebrd_double/HAPTB_util.o: timebrd_double/HAPTB_util.c timebrd_double/HAPTB.h  \
+							timebrd_double/HAPTB_cf_commands.h timebrd_double/HAPTB_util.h
+	cd timebrd_double; rm -f $@; \
+	ccppc  -c $(CCVXFLAGS) HAPTB_util.c
+
+timebrd_scan/HAPTB_scan.o: timebrd_scan/HAPTB_scan.c
+	cd timebrd_scan; rm -f $@; \
+	ccppc  -c $(CCVXFLAGS) HAPTB_scan.c
+
+timebrd_scan_set/HAPTB_scan_set.o: timebrd_scan_set/HAPTB_scan_set.c
+	cd timebrd_scan_set; rm -f $@; \
+	ccppc  -c $(CCVXFLAGS) HAPTB_scan_set.c
 
 scan/SCAN_util.o: scan/SCAN_util.c  scan/SCAN_util.h
 	cd scan; rm -f $@; \
