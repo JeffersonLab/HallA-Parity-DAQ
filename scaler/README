@@ -1,0 +1,49 @@
+This file:  ~apar/scaler/README
+
+Scalers in CH crate for VETO counter, etc.
+Bob Michaels,  Dec 2015
+
+If all is going well, the data appears automatically in
+EPICS variables  Aline_Halo1, Aline_Halo2, etc
+
+and you can "spy" on them using a script like 
+~/scaler/scalepics/getepics
+which loops forever and prints the variables
+
+As I type this, the printout is :
+Halo monitor 1 :  Aline_Halo1       3.99192e+06
+Halo monitor 2 :  Aline_Halo2       30
+Halo monitor 3 :  Aline_Halo3       0
+Halo monitor 4 :  Aline_Halo4       0
+
+This is because I put a 4 MHz clock into channel 1
+and the 30 Hz helicity into a 2nd channel.  Note, the
+channel mapping is controlled by ~/scaler/scalepics/getscaler
+which is the script that gets data from the scaler server
+and puts them into EPICS.  In particular, one should control
+
+    CHAN1=1
+    CHAN2=6
+    CHAN3=7
+    CHAN4=8
+ 
+and remember that channel 0 is the 1st channel.
+
+Brief description of the software architecture:
+
+ EPICS variables like Aline_Halo1, Aline_Halo2, etc, are filled
+ by a script that loops forever, invoking a client to obtain scaler
+ data from a VME server.  The VME-based code will read the scaler 
+ directly if CODA is not running, or it will read memory filled by 
+ CODA if CODA is running.  Rates are normalized to a clock plugged 
+ into a specific channel; however, if nothing is plugged into the clock
+ channel the rates are normalized by using the time between readings.
+ Once the data are in EPICS, they can be shared with MCC or put 
+ into stripcharts.  If you reboot the VME computer or adaq2, the 
+ software automaically restarts and EPICS variables should be filled 
+ 24/7 whether CODA is running or not.
+
+More info about the technical aspects of this software
+are in ~/scaler/README_technical, but you probably don't
+need to read that.
+
