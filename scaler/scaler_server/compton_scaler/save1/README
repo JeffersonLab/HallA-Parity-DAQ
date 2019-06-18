@@ -1,0 +1,36 @@
+clock in chan 3  = 40 Mhz
+
+13,14,15
+
+
+  R. Michaels   Apr 27, 1999
+  
+  In this directory is the client/server used for scalers
+  on the Left-arm which included the new SIS3801 scalers running
+  in 3801 mode (i.e. with FIFO) and obtaining data from the
+  "producer" which put data into shared memory like SIS1Cumulative
+  etc in the SIS.h include file.
+
+  
+  R. Tieulent  June 23, 1999
+  
+  Add one pair of client/server using TCP/IP protocol (buffcli.c and 
+  buffser.c). These client/server is used to save the Buffer in order 
+  to analyse it later.
+
+  Another pair (badser.c and badcli.c) allows to spy on how much
+  "bad" data are being taken by the 3801 scalers.  See code for
+  definition of bad.
+
+
+  R. Michaels  Jan 20, 2000
+
+  Rather major change -- instead of using bdaInsertEvent (DD system)
+  we use etInsertEvent (ET system).
+  The old code was stored in ../hadron_DD
+
+  R. Michaels  Sept 2000
+
+  Spectrometers are now "left" and "right" instead of E,H.
+
+ 

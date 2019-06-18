@@ -1,0 +1,34 @@
+Scaler readout
+Dec, 2015    Bob Michaels
+
+
+At the moment, the important files in this directory are
+
+  scacli.c  -- client code, runs on Linux box like adaq2
+               compiled executible: scread
+               For usage help, type "./scread -h" 
+
+  scaser.c  -- server code, runs on vxWorks like halladaq6
+
+  Makefile -- to compile, type "make"
+
+  scread.bash  -- a script which runs scread (compiled client)
+             with arguments that we need for the halo monitor stuff
+
+  sysT.c  -- example C code that utilizes system calls of scread, 
+  			 sleeps for a while, and reads out the scaler and puts
+			 the results into text files for scaler rate computation
+
+Brief description of the software architecture:
+
+ EPICS variables like Aline_Halo1, Aline_Halo2, etc, are filled
+ by a script that loops forever, invoking a client to obtain scaler
+ data from a VME server.  The VME-based code will read the scaler 
+ directly if CODA is not running, or it will read memory filled by 
+ CODA if CODA is running.  Rates are normalized to a clock plugged 
+ into a specific channel; however, if nothing is plugged into the clock
+ channel the rates are normalized by using the time between readings.
+ Once the data are in EPICS, they can be shared with MCC or put 
+ into stripcharts.  If you reboot the VME computer or adaq2, the 
+ software automaically restarts and EPICS variables should be filled 
+ 24/7 whether CODA is running or not.

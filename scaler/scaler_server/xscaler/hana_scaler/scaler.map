@@ -1,0 +1,219 @@
+# This file: scaler.map
+# Author: Robert Michaels, Jlab
+# Contains time-dependent text-based mapping of Hall A scaler channels
+# which permits getting data from THaScaler by names like "bcm_u3".
+# Also contains "directives" that control xscaler and simplify
+# the map, e.g. tying helicity scaler map to non-helicity scaler 
+# For documentation about this file, see
+# http://hallaweb.jlab.org/equipment/daq/THaScaler.html (scroll to "scaler.map"
+# near the end of that web page).
+#
+
+# ---- Sept 24, 2009
+DATE 24 9 2009
+# Version for PVDIS scalers
+
+# directives for Left arm
+
+xscaler-tabs Left 0:scal1 1:scal2 2:scal3 3:scal4 
+xscaler-layout Left 0:8x4 1:8x4 2:8x4 3:8x4 
+xscaler-pageslot Left 0:slot0 1:slot1 2:slot2 3:slot3 
+xscaler-pagename Left 0:'L-Arm   PVDIS   1st scaler'
+xscaler-pagename Left 1:'L-Arm   PVDIS   2nd scaler'
+xscaler-pagename Left 2:'L-Arm   PVDIS   3rd scaler'
+xscaler-pagename Left 3:'L-Arm   PVDIS   4th scaler'
+xscaler-server Left IP:129.57.192.59 port:5026
+xscaler-clock Left slot:1 chan:29 rate:103800
+
+#
+# directives for Right arm
+
+xscaler-tabs Right 0:scal1 1:scal2 2:scal3 3:scal4 
+xscaler-layout Right 0:8x4 1:8x4 2:8x4 3:8x4 
+xscaler-pageslot Right 0:slot0 1:slot1 2:slot2 3:slot3 
+xscaler-pagename Right 0:'R-Arm  PVDIS   1st scaler'
+xscaler-pagename Right 1:'R-Arm  PVDIS   2nd scaler'
+xscaler-pagename Right 2:'R-Arm  PVDIS   3rd scaler'
+xscaler-pagename Right 3:'R-Arm  PVDIS   4th scaler'
+xscaler-server Right IP:129.57.192.58 port:5026
+xscaler-clock Right slot:3 chan:15 rate:103800
+
+
+# Left arm:  
+# desc  hel crate slot start nchan  long-description
+synch(ungate)      0    8   0     0    1    ungate synch
+TS2H      0    8   0     1    1     Total Shower group 2
+TS3H      0    8   0     2    1     Total Shower group 3
+TS4H      0    8   0     3    1     Total Shower group 4
+TS5H      0    8   0     4    1     Total Shower group 5
+TS6H      0    8   0     5    1     Total Shower group 6
+PS1H      0    8   0     6    1     PreShower group 1
+PS2H      0    8   0     7    1     PreShower group 2
+PS3H      0    8   0     8    1     PreShower group 3
+PS4H      0    8   0     9    1     PreShower group 4
+PS5H      0    8   0    10    1     PreShower group 5
+PS6H      0    8   0    11    1     PreShower group 6
+E1NA      0    8   0    12    1     Electron narrow group 1
+E2NA      0    8   0    13    1     Electron narrow group 2
+E3NA      0    8   0    14    1     Electron narrow group 3
+E4NA      0    8   0    15    1     Electron narrow group 4
+E5NA      0    8   0    16    1     Electron narrow group 5
+E6NA      0    8   0    17    1     Electron narrow group 6
+E1WA      0    8   0    18    1     Electron wide group 1
+E2WA      0    8   0    19    1     Electron wide group 2
+E3WA      0    8   0    20    1     Electron wide group 3
+E4WA      0    8   0    21    1     Electron wide group 4
+E5WA      0    8   0    22    1     Electron wide group 5
+E6WA      0    8   0    23    1     Electron wide group 6
+synch(gate)     0    8   0    24    1     gated synch
+T1&&Tag   0    8   0    25    1     T1 with tagger
+GC&&SC    0    8   0    26    1     gas cherenkov and scintillator
+NGC&&SC   0    8   0    27    1     not gas cherenkov and scintillator
+SUM_EN    0    8   0    28    1     Sum of electron narrow groups
+SUM_EW    0    8   0    29    1     Sum of electron wide groups
+SUM_PN    0    8   0    30    1     Sum of pion narrow groups
+SUM_PW    0    8   0    31    1     Sum of pion wide groups 
+P1WA      0    8   1     0    1     Pion wide group 1
+P2WA      0    8   1     1    1     Pion wide group 2
+P3WA      0    8   1     2    1     Pion wide group 3
+P4WA      0    8   1     3    1     Pion wide group 4
+P5WA      0    8   1     4    1     Pion wide group 5
+P6WA      0    8   1     5    1     Pion wide group 6
+P1NA      0    8   1     6    1     Pion narrow group 1
+P2NA      0    8   1     7    1     Pion narrow group 2
+P3NA      0    8   1     8    1     Pion narrow group 3
+P4NA      0    8   1     9    1     Pion narrow group 4
+P5NA      0    8   1    10    1     Pion narrow group 5
+P6NA      0    8   1    11    1     Pion narrow group 6
+GasCherenkov     0    8   1    12    1     gas cherenkov
+T1        0    8   1    13    1     T1
+MPS       0    8   1    14    1     MPS
+synch(ungate)       0    8   1    15    1     ungated synch
+Pileup_E1NA      0    8   1    16    1     Pileup of electron narrow group 1
+Pileup_E1WA      0    8   1    17    1     Pileup of electron wide group 1
+Pileup_E2NA      0    8   1    18    1     Pileup of electron narrow group 2
+Pileup_E2WA      0    8   1    19    1     Pileup of electron wide group 2
+Pileup_E3NA      0    8   1    20    1     Pileup of electron narrow group 3
+Pileup_E3WA      0    8   1    21    1     Pileup of electron wide group 3
+Pileup_E4NA      0    8   1    22    1     Pileup of electron narrow group 4
+Pileup_E4WA      0    8   1    23    1     Pileup of electron wide group 4
+Pileup_E5NA      0    8   1    24    1     Pileup of electron narrow group 5
+Pileup_E5WA      0    8   1    25    1     Pileup of electron wide group 5
+Pileup_E6NA      0    8   1    26    1     Pileup of electron narrow group 6
+Pileup_E6WA      0    8   1    27    1     Pileup of electron wide group 6
+clk104K          0    8   1    29    1     103.8KHz clock
+clk1024          0    8   1    30    1     1024Hz clock
+Tagger           0    8   1    31    1     tagger signal
+bcm_u1           0    8   3    16    1     Beam current, upstream cavity, gain = 1
+bcm_u3           0    8   3    17    1     Beam current, upstream cavity, gain = 3
+bcm_u10          0    8   3    18    1     Beam current, upstream cavity, gain = 10
+bcm_d1           0    8   3    19    1     Beam current, downstream cavity, gain = 1
+bcm_d3           0    8   3    20    1     Beam current, downstream cavity, gain = 3
+bcm_d10          0    8   3    21    1     Beam current, downstream cavity, gain = 10
+unser            0    8   3    22    1     Unser Monitor
+TS1H             0    8   3    23    1     Total shower group 2
+synch(gated)            0    8   3    24    1     gated synch
+sync2(ungated)            0    8   3    25    1     ungated synch
+delayed tag            0    8   3    26    1     delayed tagger
+T2               0    8   3    27    1     s0 front && back  
+
+# desc  hel crate slot start nchan  long-description
+HAPPEX       0    8   3   6    1    HAPPEX detector
+S0f          0    8   3   16   1    S0 front PMT
+S0b          0    8   3   24   1    S0 back PMT
+
+# Right HRS:
+sync(ungate)      0    7   0     0    1    ungated synch
+TS2H      0    7   0     1    1     Total Shower group 2
+TS3H      0    7   0     2    1     Total Shower group 3
+TS4H      0    7   0     3    1     Total Shower group 4
+TS5H      0    7   0     4    1     Total Shower group 5
+TS6H      0    7   0     5    1     Total Shower group 6
+TS7H      0    7   0     6    1     Total Shower group 7
+TS8H      0    7   0     7    1     Total Shower group 8
+sync(gated)      0    7   0     8    1     gated synch
+PS2H      0    7   0     9    1     PreShower group 2
+PS3H      0    7   0    10    1     PreShower group 3
+PS4H      0    7   0    11    1     PreShower group 4
+PS5H      0    7   0    12    1     PreShower group 5
+PS6H      0    7   0    13    1     PreShower group 6
+PS7H      0    7   0    14    1     PreShower group 7
+PS8H      0    7   0    15    1     PreShower group 8
+E1NA      0    7   0    16    1     Electron narrow group 1
+E2NA      0    7   0    17    1     Electron narrow group 2
+E3NA      0    7   0    18    1     Electron narrow group 3
+E4NA      0    7   0    19    1     Electron narrow group 4
+E5NA      0    7   0    20    1     Electron narrow group 5
+E6NA      0    7   0    21    1     Electron narrow group 6
+E7NA      0    7   0    22    1     Electron narrow group 7
+E8NA      0    7   0    23    1     Electron narrow group 8
+E1WA      0    7   0    24    1     Electron wide group 1
+E2WA      0    7   0    25    1     Electron wide group 2
+E3WA      0    7   0    26    1     Electron wide group 3
+E4WA      0    7   0    27    1     Electron wide group 4
+E5WA      0    7   0    28    1     Electron wide group 5
+E6WA      0    7   0    29    1     Electron wide group 6
+E7WA      0    7   0    30    1     Electron wide group 7
+E8WA      0    7   0    31    1     Electron wide group 8
+P1WA      0    7   1     0    1     Pion wide group 1
+P2WA      0    7   1     1    1     Pion wide group 2
+P3WA      0    7   1     2    1     Pion wide group 3
+P4WA      0    7   1     3    1     Pion wide group 4
+P5WA      0    7   1     4    1     Pion wide group 5
+P6WA      0    7   1     5    1     Pion wide group 6
+P7WA      0    7   1     6    1     Pion wide group 7
+P8WA      0    7   1     7    1     Pion wide group 8
+P1NA      0    7   1     8    1     Pion narrow group 1
+P2NA      0    7   1     9    1     Pion narrow group 2
+P3NA      0    7   1    10    1     Pion narrow group 3
+P4NA      0    7   1    11    1     Pion narrow group 4
+P5NA      0    7   1    12    1     Pion narrow group 5
+P6NA      0    7   1    13    1     Pion narrow group 6
+P7NA      0    7   1    14    1     Pion narrow group 7
+P8NA      0    7   1    15    1     Pion narrow group 8
+Pileup_E5NA     0    7   1    16    1     Pileup of electron narrow group 5
+Pileup_E5WA     0    7   1    17    1     Pileup of electron wide group 5
+Pileup_E6NA     0    7   1    18    1     Pileup of electron narrow group 6
+Pileup_E6WA     0    7   1    19    1     Pileup of electron wide group 6
+Pileup_E7NA     0    7   1    20    1     Pileup of electron narrow group 7
+Pileup_E7WA     0    7   1    21    1     Pileup of electron wide group 7
+Pileup_E8NA     0    7   1    22    1     Pileup of electron narrow group 8
+Pileup_E8WA     0    7   1    23    1     Pileup of electron wide group 8
+SUM_EN           0    7   1    24    1     Sum of electron narrow groups
+SUM_EW           0    7   1    25    1     Sum of electron wide groups
+SUM_PN           0    7   1    26    1     Sum of pion narrow groups
+SUM_PW           0    7   1    27    1     Sum of pion wide groups 
+T1               0    7   1    28    1     T1
+sync(gated)            0    7   1    29    1    gated synch
+tagger           0    7   1    30    1     tagger
+sync(ungated)          0    7   1    31    1     ungated synch
+bcm_u1           0    7   3     0    1     Beam current, upstream cavity, gain = 1
+bcm_u3           0    7   3     1    1     Beam current, upstream cavity, gain = 3
+bcm_u10          0    7   3     2    1     Beam current, upstream cavity, gain = 10
+bcm_d1           0    7   3     3    1     Beam current, downstream cavity, gain = 1
+bcm_d3           0    7   3     4    1     Beam current, downstream cavity, gain = 3
+bcm_d10          0    7   3     5    1     Beam current, downstream cavity, gain = 10
+unser            0    7   3     6    1     Unser Monitor
+sync(ungate)            0    7   3     8    1     ungated synch
+sync(gated)            0    7   3     9    1      gated synch
+LNE              0    7   3    10    1     LNE
+MPS              0    7   3    11    1     MPS
+TS1H             0    7   3    12    1     total shower group 1
+PS1H             0    7   3    13    1     preshower group 1
+T2               0    7   3    14    1     s0 front && back
+clock              0    7   3    15    1     103.7KHz clock
+GC&&SC&&tag           0    7   3    16    1     Scintillator and gas cherenkov with tagger
+NGC&&SC&&tag          0    7   3    17    1     notGC and SC with tagger
+GC&&tag          0    7   3    18    1     GC with tagger
+SC               0    7   3    19    1     SC
+T1_only          0    7   3    20    1     T1 only
+Pileup_E1NA      0    7   3    24    1     Pileup of electron narrow group 1
+Pileup_E1WA      0    7   3    25    1     Pileup of electron wide group 1
+Pileup_E2NA      0    7   3    26    1     Pileup of electron narrow group 2
+Pileup_E2WA      0    7   3    27    1     Pileup of electron wide group 2
+Pileup_E3NA      0    7   3    28    1     Pileup of electron narrow group 3
+Pileup_E3WA      0    7   3    29    1     Pileup of electron wide group 3
+Pileup_E4NA      0    7   3    30    1     Pileup of electron narrow group 4
+Pileup_E4WA      0    7   3    31    1     Pileup of electron wide group 4
+
+
