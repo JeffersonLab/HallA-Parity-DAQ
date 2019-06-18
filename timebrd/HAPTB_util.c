@@ -168,6 +168,11 @@ int setTimeHAPTB(int delay, int time)
 {
   if ( !did_init_TB ) return -1;
   //if (CODA_RUN_IN_PROGRESS==1) return errorPrintHAPTB(2);
+  if (CODA_RUN_IN_PROGRESS==1) {
+    printf("\n\n\nWARNING: A run is in progress and you have changed the HAPTB timing");
+    printf("Original Timing: rampDelay = %d, intTime: %d ",tboard->rampdelay,tboard->integtime);
+    printf("New Timing: rampDelay = %d, intTime: %d \n\n\n",delay,time);
+  }
   tboard->rampdelay = delay;
   tboard->integtime = time;    
   return 1;
