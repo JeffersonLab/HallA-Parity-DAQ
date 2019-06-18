@@ -56,6 +56,16 @@
 #define FLAG_FILE "ffile"
 #define COMMENT_CHAR ';'
 
+#define VQWK_SAMPLE_PERIOD  "vqwkperiod"
+#define VQWK_NUM_BLOCKS     "vqwkblocks"
+#define VQWK_SAMP_PER_BLOCK "vqwksamples"
+#define VQWK_GATE_DELAY     "vqwkdelay"
+#define VQWK_INT_GATE_FREQ  "vqwkgatefreq"
+#define VQWK_INTERNAL_MODE  "vqwkinternal"
+
+#define VQWK_VERBOSE_MODE   "vqwk_verbose"
+
+
 
 #ifndef INTERNAL_FLAGS
 #define INTERNAL_FLAGS ""
@@ -206,6 +216,61 @@ void init_strings()
     free(ffile_name);
   }
 /*  daLogMsg("Run time Config: %s\n",file_configusrstr); */
+}
+
+
+void load_strings_from_file(char *input_name)
+     /* Load/reload config line from user flag file. */
+{
+  char *ffile_name;
+  int fd;
+  char s[256], *flag_line;
+
+  if(!internal_configusrstr) {	/* Internal flags not loaded */
+    internal_configusrstr = (char *) malloc(strlen(INTERNAL_FLAGS)+1);
+    strcpy(internal_configusrstr,INTERNAL_FLAGS);
+  }
+/*  daLogMsg("Internal Config: %s\n",internal_configusrstr); */
+/*  daLogMsg("rcDatabase Conf: %s\n",rol->usrString);  */
+
+  ffile_name = (char *) malloc(strlen(input_name)+1);
+  strcpy(ffile_name,input_name);
+/* check that filename exists */
+  fd = fopen(ffile_name,"r");
+  if(!fd) {
+    printf("Failed to open usr flag file %s\n",ffile_name); 
+    free(ffile_name);
+    if(file_configusrstr) free(file_configusrstr); /* Remove old line */
+    file_configusrstr = (char *) malloc(1);
+    file_configusrstr[0] = '\0';
+  } else {
+    /* Read till an uncommented line is found */
+    flag_line = 0;
+    while(fgets(s,255,fd)){
+      char *arg;
+      arg = strchr(s,COMMENT_CHAR);
+      if(arg) *arg = '\0'; /* Blow away comments */
+      arg = s;			/* Skip whitespace */
+      while(*arg && isspace(*arg)){
+	arg++;
+      }
+      if(*arg) {
+	flag_line = arg;
+	break;
+      }
+    }
+    if(file_configusrstr) free(file_configusrstr); /* Remove old line */
+    if(flag_line) {		/* We have a config usrstr */
+      file_configusrstr = (char *) malloc(strlen(flag_line)+1);
+      strcpy(file_configusrstr,flag_line);
+    } else {
+      file_configusrstr = (char *) malloc(1);
+      file_configusrstr[0] = '\0';
+    }
+    fclose(fd);
+    free(ffile_name);
+  }
+  daLogMsg("Run time Config: %s\n",file_configusrstr); 
 }
       
 #endif /* _USRSTRUTILS_INCLUDED */
