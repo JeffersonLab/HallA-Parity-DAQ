@@ -154,6 +154,7 @@ begin prestart
 # Setup the JLab FlexIO module.
   log inform "Begin setting up the JLab FlexIO module."
 %%
+
   flexioInit(0x0ee0);         /* PORT 1 IS OUTPUT, PORT 2 IS INPUT */
   flexioEnableInputLatch(2);  /* Set port 2 to use the input latch. */
   flexioPrintStatus();
@@ -188,7 +189,10 @@ begin prestart
 %%
 	   /* nvqwk = 0;*/
 /*Caryn changed nvqwk from 10 to 11 03/23/2016*/
-  nvqwk = 11;
+  /*nvqwk = 11;*/
+
+/*Caryn changed nvqwk from 11 to 12 04/03/2019*/
+ nvqwk = 12;
 
   if (nvqwk==0){
     READOUT_VQWK = 0;
@@ -569,6 +573,21 @@ open bank BANK3 of BT_UI4
       }
 %%
     
+  close bank
+
+  # "kitchen sink", timeing board, bmw stuff, etc.
+  open bank BANK4 of BT_UI4
+%%
+  *rol->dabufp++ = 0xfffbd000;    /*  Header for timing board info */
+  *rol->dabufp++ = getDataHAPTB();
+  *rol->dabufp++ = getRampDelayHAPTB();
+  *rol->dabufp++ = getIntTimeHAPTB();
+  *rol->dabufp++ = (getOverSampleCurrentHAPTB() << 8) + getOverSampleHAPTB();
+  *rol->dabufp++ = getDACHAPTB(2); /* DAC16 */
+  *rol->dabufp++ = getDACHAPTB(1); /* DAC12 */
+  *rol->dabufp++ = 0;
+  *rol->dabufp++ = 0;
+%%
   close bank
   close event
 
