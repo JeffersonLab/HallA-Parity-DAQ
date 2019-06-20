@@ -826,6 +826,13 @@ int localBMWfreq;
 int localBMWphase;
 int localBMWperiod;
 int localBMWcycnum;
+int localBMWcoil1;
+int localBMWamp1;
+int localBMWcoil2;
+int localBMWamp2;
+int localBMWmax_period;
+int localBMWffb_pause;
+int localBMW_arm_trig;
 int nscaler;
 int iocTime;
 int i1,i2,i3,i4;
@@ -910,7 +917,11 @@ if(bmwscan==1) {
   //      and we don't want nuthin' to change before we see it
   //1
   //////////////////////////////////////////////////
-  if(bmw_arm_trig || bmw_phase_num==bmw_phase_cnt){
+  if (bmw_arm_trig && !localBMW_arm_trig){
+    bmw_period = 0;
+  }
+  localBMW_arm_trig = bmw_arm_trig;
+  if(localBMW_arm_trig || bmw_phase_num==bmw_phase_cnt){
     bmw_period++;
     bmw_phase=0;
     bmw_phase_cnt=0;
@@ -920,19 +931,19 @@ if(bmwscan==1) {
     bmw_phase_cnt++;    
     bmw_phase++;
   }
-  
-  localBMWobj = bmw_object;
-  localBMWfreq = bmw_freq;
-  localBMWphase = bmw_phase;
+
+  localBMWphase  = bmw_phase;  
   localBMWperiod = bmw_period;
+  localBMWobj    = bmw_object;
+  localBMWfreq   = bmw_freq1;
   localBMWcycnum = bmw_cycle_number;
-  
-  //  record if event was unclean for any portion of pulse
-  pulseclean = bmw_clean_pulse;
-  
-  //  if pulse was at some point unclean, but ended clean, prepare
-  //  next pulse to be seen as clean
-  //  if (!(pulseclean==1) && (bmw_clean==1)) bmw_clean_pulse=1;  
+
+  localBMWcoil1  = bmw_coil1;
+  localBMWamp1   = bmw_amp1;
+  localBMWcoil2  = bmw_coil2;
+  localBMWamp2   = bmw_amp2;
+  localBMWmax_period = bmw_max_period;
+  localBMWffb_pause  = bmw_ffb_pause;
 }
 #endif//FIXME
 
@@ -1140,6 +1151,13 @@ if(bmwscan==1) {
    *rol->dabufp++ = localBMWobj; //record the last-moved object (from beginning of readout) 
   *rol->dabufp++ = localBMWfreq; // record the value of the last-moved object 
   *rol->dabufp++ = localBMWcycnum; // record the number of this supercycle 
+  // New words
+  *rol->dabufp++ = localBMWcoil1;
+  *rol->dabufp++ = localBMWamp1;
+  *rol->dabufp++ = localBMWcoil2;
+  *rol->dabufp++ = localBMWamp2;
+  *rol->dabufp++ = localBMWmax_period;
+  *rol->dabufp++ = localBMWffb_pause;
 
   /* Scan words next */
   *rol->dabufp++ = getCleanSCAN();
@@ -1323,17 +1341,30 @@ end if
  unset_tir_oport(OPORT_BUSY);
  
 /*   added for dithering, 18March10, rupesh  */
-/* DISABLE BMW
   if(counthouse){
-    if(bmw_arm_trig==1){
-      trigBMW(1);
-      //      flexioWriteMask(1,0x02);
-      bmw_arm_trig=0;
+    if (localBMWffb_pause==1) {
+      //  Turn on the "FFB disable" bit
+      flexioWriteMask(1, 0x08);
+    } else {
+      flexioWriteMask(0, 0x08);
     }
-    else trigBMW(0);
-      //flexioWriteMask(0,0x02);
+    if (localBMW_arm_trig==1) {
+      //  Turn on the trigger and "modulation active" bits
+      flexioWriteMask(1, 0x02+0x04);
+      localBMW_arm_trig = 0;
+      bmw_arm_trig=0;
+    } else {
+      flexioWriteMask(0, 0x02);
+    }
+    if (localBMWperiod == localBMWmax_period){
+      //  Turn off the "modulaiton active" bit
+      flexioWriteMask(0, 0x04);
+      bmw_phase_cnt = -1;
+      bmw_phase     =  0;
+      bmw_period    =  0;
+      bmw_object    = -1;
+    }
   }
-*  END DISABLE BMW */
 
 
 %%
