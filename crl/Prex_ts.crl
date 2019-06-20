@@ -1297,7 +1297,10 @@ if(1==1){
    set_tir_oport(OPORT_VQWKREAD);
    clearall = 0; 
    while (id < nvqwk) {
-     if (vqwkProbeDataReady(id)!=0){
+     /*  Read the VQWKs, no matter what.  ---2019jun19, pking.
+      * if (vqwkProbeDataReady(id)!=0){
+      */
+     if (1==1){
        rol->dabufp+=vqwkReadRegisters(id, 0xff, rol->dabufp);
        //      rol->dabufp+=vqwkBlockRead(id, rol->dabufp);
      } else {
