@@ -30,8 +30,21 @@ LOCAL int TB_SCAN_DONE = 0;            // Routine complete flag
 LOCAL int LAST_SCAN_RAMPDELAY_TB;
 LOCAL int LAST_SCAN_INTEGTIME_TB;
 
+LOCAL int TB_DAC16_SCAN_DONE      = 0;
+LOCAL int TB_DAC16_SCAN_LOOPN     = 0;
+LOCAL int TB_DAC16_SCAN_LOOPLIMIT = 40;
+LOCAL int TB_DAC16_SCAN_STEPLIMIT = 0;
+LOCAL int TB_DAC16_SCAN_STEPSIZE  = 64;
+LOCAL int TB_DAC16_SCAN_INITIAL   = 0;
+LOCAL int TB_DAC16_SCAN_FINAL     = 65000;
+LOCAL int TB_DAC16_SCAN_STEPTIME  = 1.0;
+LOCAL int LAST_DAC16_SCAN_TB;
+
+
 LOCAL int ORIG_RAMPDELAY_TB = 23;
 LOCAL int ORIG_INTEGTIME_TB = 3000;
+LOCAL int ORIG_DAC16_TB = 32000;
+
 char* FLAGS_FILE_TB = "/adaqfs/home/apar/devices/crl/vqwkTiming.flags";
 char  flagCrateName[255];
 char  flagDelayName[255];
@@ -252,5 +265,40 @@ int scanDelayHAPTB(){
 int stopScanHAPTB(){
   TB_SCAN_DONE = 1;
   printf("Terminated timing board scan\n");
+  return 1;
+}
+
+/*********************************************************
+ *  Print the status of the scan variables to the screen
+ *********************************************************/
+int dumpDAC16ScanProgressHAPTB(){
+  printf("\nDump of current scan settings for HAPTB scan : \n");
+  printf("Current step = %d = 22.5us+2.5us*currentDelay = %f us delay after trigger\n",LAST_SCAN_RAMPDELAY_TB,LAST_SCAN_RAMPDELAY_TB*2.5+22.5);
+  printf("Current integration time = %d = 5us+2.5us*currentIntTime = %f us gate time after delay\n",LAST_SCAN_INTEGTIME_TB,LAST_SCAN_INTEGTIME_TB*2.5+5);
+  printf("Current loop number = %d\n",TB_SCAN_LOOPN);
+  return 1;
+}
+
+/*********************************************************
+ *  Perform a RAMP DAC 16 voltage scan from -5 to +5 volts
+ *********************************************************/
+int scanDAC16HAPTB(){
+  ORIG_DAC16_TB = getDACHAPTB(2);
+  LAST_DAC16_SCAN_TB=TB_DAC16_SCAN_INITIAL;
+  TB_DAC16_SCAN_DONE = 0;
+  TB_DAC16_SCAN_LOOPN = 0;
+  /*dumpDAC16ScanProgressHAPTB();*/
+  while (TB_DAC16_SCAN_LOOPN < TB_DAC16_SCAN_LOOPLIMIT && TB_DAC16_SCAN_DONE == 0){
+    setDACHAPTB(2,LAST_DAC16_SCAN_TB);
+    LAST_DAC16_SCAN_TB+=TB_DAC16_SCAN_STEPSIZE;
+    if (LAST_DAC16_SCAN_TB >= TB_DAC16_SCAN_FINAL-TB_DAC16_SCAN_STEPSIZE){
+      TB_DAC16_SCAN_LOOPN++;
+      LAST_DAC16_SCAN_TB=TB_DAC16_SCAN_INITIAL;
+    }
+    taskDelay(TB_DAC16_SCAN_STEPTIME);
+  }
+  LAST_DAC16_SCAN_TB=TB_DAC16_SCAN_INITIAL;
+  setDACHAPTB(2,ORIG_DAC16_TB);
+  printf("Finished timing board DAC16 delay scan\n");
   return 1;
 }
