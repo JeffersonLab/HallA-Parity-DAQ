@@ -1,0 +1,338 @@
+# This file: scaler.map
+# Author: Robert Michaels, Jlab
+# Contains time-dependent text-based mapping of Hall A scaler channels
+# which permits getting data from THaScaler by names like "bcm_u3".
+# Also contains "directives" that control xscaler and simplify
+# the map, e.g. tying helicity scaler map to non-helicity scaler 
+# For documentation about this file, see
+# http://hallaweb.jlab.org/equipment/daq/THaScaler.html (scroll to "scaler.map"
+# near the end of that web page).
+#
+# Indices are C style !!  (0 = 1st)
+
+# ---- Sept 24, 2009
+DATE 24 9 2009
+# Version for PVDIS scalers
+
+# directives for Left arm
+
+xscaler-tabs Left 0:scal1 1:scal2 2:scal3 3:scal4 
+xscaler-layout Left 0:8x4 1:8x4 2:8x4 3:8x4 
+xscaler-pageslot Left 0:slot0 1:slot1 2:slot2 3:slot3 
+xscaler-pagename Left 0:'L-Arm   PVDIS   1st scaler'
+xscaler-pagename Left 1:'L-Arm   PVDIS   2nd scaler'
+xscaler-pagename Left 2:'L-Arm   PVDIS   3rd scaler'
+xscaler-pagename Left 3:'L-Arm   PVDIS   4th scaler'
+xscaler-server Left IP:129.57.192.59 port:5026
+xscaler-clock Left slot:3 chan:13 rate:103800
+
+#
+# directives for Right arm
+
+xscaler-tabs Right 0:scal1 1:scal2 2:scal3 3:scal4 
+xscaler-layout Right 0:8x4 1:8x4 2:8x4 3:8x4 
+xscaler-pageslot Right 0:slot0 1:slot1 2:slot2 3:slot3 
+xscaler-pagename Right 0:'R-Arm  PVDIS   1st scaler'
+xscaler-pagename Right 1:'R-Arm  PVDIS   2nd scaler'
+xscaler-pagename Right 2:'R-Arm  PVDIS   3rd scaler'
+xscaler-pagename Right 3:'R-Arm  PVDIS   4th scaler'
+xscaler-server Right IP:129.57.192.58 port:5026
+xscaler-clock Right slot:3 chan:15 rate:103800
+
+
+# ============= Left HRS  (crate "8") ======================
+# Left HRS:
+# slot 0 (1st slot, scaler10) follows
+# desc  hel crate slot start nchan  long-description
+SynUg			0    8   0     0    1   
+TS2					0    8   0     1    1   
+TS3					0    8   0     2    1  
+TS4      			0    8   0     3    1   
+TS5 				0    8   0     4    1   
+TS6 				0    8   0     5    1   
+PS1	 				0    8   0     6    1  
+PS2	     			0    8   0     7    1   
+PS3   	   	 		0    8   0     8    1   
+PS4					0    8   0     9    1   
+PS5					0    8   0     10    1   
+PS6					0    8   0     11    1   
+E1Na				0    8   0     12    1   
+E2Na				0    8   0     13    1   
+E3Na				0    8   0     14    1   
+E4Na				0    8   0     15    1   
+E5Na				0    8   0     16    1   
+E6Na      			0    8   0     17    1   
+E1Wd				0    8   0     18    1   
+E2Wd				0    8   0     19    1   
+E3Wd				0    8   0     20    1   
+E4Wd				0    8   0     21    1   
+E5Wd				0    8   0     22    1   
+E6Wd      		0    8   0     23    1   
+SynG				0    8   0     24    1   
+T1/Tag			0    8   0     25    1   
+GC/SC			0    8   0     26    1   
+NoGC/SC		0    8   0     27    1   
+E1eNa				0    8   0     28    1   
+EleWd			0    8   0     29    1   
+PiNar				0    8   0     30    1   
+PiWd				0    8   0     31    1   
+
+
+
+# slot 1 (2nd slot, scaler11) follows
+# desc  hel crate slot start nchan  long-description
+P1Wd				0    8   1     0    1   
+P2Wd				0    8   1     1    1   
+P3Wd				0    8   1     2    1  
+P4Wd     			0    8   1     3    1   
+P5Wd 				0    8   1     4    1   
+P6Wd 				0    8   1     5    1   
+P1Na 				0    8   1     6    1  
+P2Na     			0    8   1     7    1   
+P3Na	   			0    8   1     8    1   
+P4Na				0    8   1     9    1   
+P5Na				0    8   1     10    1   
+P6Na				0    8   1     11    1   
+GC					0    8   1     12    1   
+T1					0    8   1     13    1   
+MPS				0    8   1     14    1   
+SynUg			0    8   1     15    1   
+PileE1Na		0    8   1     16    1   
+PileE1Wd      0    8   1     17    1   
+PileE2Na		0    8   1     18    1   
+PileE2Wd		0    8   1     19    1   
+PileE3Na		0    8   1     20    1   
+PileE3Wd		0    8   1     21    1   
+PileE4Na		0    8   1     22    1   
+PileE4Wd      0    8   1     23    1   
+PileE5Na		0    8   1     24    1   
+PileE5Wd 		0    8   1     25    1   
+PileE6Na		0    8   1     26    1   
+PileE6Wd		0    8   1     27    1   
+SynG				0    8   1     28    1   
+Clk103.8K		0    8   1     29    1   
+Clk1024Hz	0    8   1     30    1   
+Tagger			0    8   1     31    1   
+
+# slot 2 (3rd slot, scaler12) follows
+# desc  hel crate slot start nchan  long-description
+SynUg			0    8   2     0    1   
+TS2					0    8   2     1    1   
+TS3					0    8   2     2    1  
+TS4      			0    8   2     3    1   
+TS5 				0    8   2     4    1   
+TS6 				0    8   2     5    1   
+PS1	 				0    8   2     6    1  
+PS2	     			0    8   2     7    1   
+PS3   	   	 		0    8   2     8    1   
+PS4					0    8   2     9    1   
+PS5					0    8   2     10    1   
+PS6					0    8   2     11    1   
+E1Na				0    8   2     12    1   
+E2Na				0    8   2     13    1   
+E3Na				0    8   2     14    1   
+E4Na				0    8   2     15    1   
+E5Na				0    8   2     16    1   
+E6Na      			0    8   2     17    1   
+E1Wd				0    8   2     18    1   
+E2Wd				0    8   2     19    1   
+E3Wd				0    8   2     20    1   
+E4Wd				0    8   2     21    1   
+E5Wd				0    8   2     22    1   
+E6Wd      		0    8   2     23    1   
+SynG				0    8   2     24    1   
+T1/Tag			0    8   2     25    1   
+GC/SC			0    8   2     26    1   
+NoGC/SC		0    8   2     27    1   
+E1eNa				0    8   2     28    1   
+EleWd			0    8   2     29    1   
+PiNar				0    8   2     30    1   
+PiWd				0    8   2     31    1   
+
+
+# slot 3 (4rd slot, scaler13) follows
+# desc  hel crate slot start nchan  long-description
+PileE1Na		0    8   3     0    1   
+PileE1Wd      0    8   3     1    1   
+PileE2Na		0    8   3     2    1   
+PileE2Wd		0    8   3     3    1   
+PileE3Na		0    8   3     4    1   
+PileE3Wd		0    8   3     5    1   
+PileE4Na		0    8   3     6    1   
+PileE4Wd      0    8   3     7    1   
+PileE5Na		0    8   3     8    1   
+PileE5Wd 		0    8   3     9    1   
+PileE6Na		0    8   3     10    1   
+PileE6Wd		0    8   3     11    1   
+SynG				0    8   3     12    1   
+Clk103.8K		0    8   3     13    1   
+Clk1024Hz	0    8   3     14    1   
+Tagger			0    8   3     15    1
+BCMu1			0    8   3     16    1   
+BCMu3      		0    8   3     17    1   
+BCMu10		0    8   3     18    1   
+BCMd1			0    8   3     19    1   
+BCMd3			0    8   3     20    1   
+BCMd10		0    8   3     21    1   
+UNSER			0    8   3     22    1   
+TS1      			0    8   3     23    1   
+SynG				0    8   3     24    1   
+SynU				0    8   3     25    1   
+delayTag		0    8   3     26    1   
+T2(S0_ft/bk) 	0    8   3     27    1   
+dislsp10			0    8   3     28    1   
+dislsp11			0    8   3     29    1   
+dislsp12			0    8   3     30    1   
+dislsp13			0    8   3     31    1 
+
+
+
+
+
+
+# ============= RIGHT HRS  (crate "7") ======================
+# Right HRS:
+# slot 0 (1st slot, scaler6) follows
+# desc  hel crate slot start nchan  long-description
+SynUg	0    7   0     0    1   
+TS2			0    7   0     1    1   
+TS3			0    7   0     2    1  
+TS4      	0    7   0     3    1   
+TS5 		0    7   0     4    1   
+TS6 		0    7   0     5    1   
+TS7 		0    7   0     6    1  
+TS8     	0    7   0     7    1   
+SynG	    0    7   0     8    1   
+PS2			0    7   0     9    1   
+PS3			0    7   0     10    1   
+PS4			0    7   0     11    1   
+PS5			0    7   0     12    1   
+PS6			0    7   0     13    1   
+PS7			0    7   0     14    1   
+PS8			0    7   0     15    1   
+E1Na		0    7   0     16    1   
+E2Na      0    7   0     17    1   
+E3Na		0    7   0     18    1   
+E4Na		0    7   0     19    1   
+E5Na		0    7   0     20    1   
+E6Na		0    7   0     21    1   
+E7Na		0    7   0     22    1   
+E8Na      0    7   0     23    1   
+E1Wd		0    7   0     24    1   
+E2Wd		0    7   0     25    1   
+E3Wd		0    7   0     26    1   
+E4Wd		0    7   0     27    1   
+E5Wd		0    7   0     28    1   
+E6Wd		0    7   0     29    1   
+E7Wd		0    7   0     30    1   
+E8Wd		0    7   0     31    1   
+
+
+
+# slot 1 (2nd slot, scaler7) follows
+# desc  hel crate slot start nchan  long-description
+P1Wd				0    7   1     0    1   
+P2Wd				0    7   1     1    1   
+P3Wd				0    7   1     2    1  
+P4Wd     			0    7   1     3    1   
+P5Wd 				0    7   1     4    1   
+P6Wd 				0    7   1     5    1   
+P7Wd 				0    7   1     6    1  
+P8Wd     			0    7   1     7    1   
+P1Na	   			0    7   1     8    1   
+P2Na				0    7   1     9    1   
+P3Na				0    7   1     10    1   
+P4Na				0    7   1     11    1   
+P5Na				0    7   1     12    1   
+P6Na				0    7   1     13    1   
+P7Na				0    7   1     14    1   
+P8Na				0    7   1     15    1   
+PileE5Na		0    7   1     16    1   
+PileE5Wd      0    7   1     17    1   
+PileE6Na		0    7   1     18    1   
+PileE6Wd		0    7   1     19    1   
+PileE7Na		0    7   1     20    1   
+PileE7Wd		0    7   1     21    1   
+PileE8Na		0    7   1     22    1   
+PileE8Wd      0    7   1     23    1   
+EleNa				0    7   1     24    1   
+EleWd			0    7   1     25    1   
+PiNa				0    7   1     26    1   
+PiWd				0    7   1     27    1   
+T1					0    7   1     28    1   
+SynG				0    7   1     29    1   
+Tagger			0    7   1     30    1   
+SynUg			0    7   1     31    1   
+
+# slot 2 (3rd slot, scaler8) follows
+# desc  hel crate slot start nchan  long-description
+E1Na				0    7   2     0    1   
+E2Na     			0    7   2     1    1   
+E3Na				0    7   2     2    1   
+E4Na				0    7   2     3    1   
+E5Na				0    7   2     4    1   
+E6Na				0    7   2     5    1   
+E7Na				0    7   2     6    1   
+E8Na      			0    7   2     7    1   
+E1Wd				0    7   2     8    1   
+E2Wd				0    7   2     9    1   
+E3Wd				0    7   2     10    1   
+E4Wd				0    7   2     11    1   
+E5Wd				0    7   2     12    1   
+E6Wd				0    7   2     13    1   
+E7Wd				0    7   2     14    1   
+E8Wd				0    7   2     15    1   
+PileE5Na		0    7   2     16    1   
+PileE5Wd      0    7   2     17    1   
+PileE6Na		0    7   2     18    1   
+PileE6Wd		0    7   2     19    1   
+PileE7Na		0    7   2     20    1   
+PileE7Wd		0    7   2     21    1   
+PileE8Na		0    7   2     22    1   
+PileE8Wd      0    7   2     23    1   
+EleNa				0    7   2     24    1   
+EleWd			0    7   2     25    1   
+PiNa				0    7   2     26    1   
+PiWd				0    7   2     27    1   
+T1					0    7   2     28    1   
+SynG				0    7   2     29    1   
+Tagger			0    7   2     30    1   
+SynUg			0    7   2     31    1 
+
+# slot 3 (4rd slot, scaler9) follows
+# desc  hel crate slot start nchan  long-description
+BCMu1				0    7   3     0    1   
+BCMu3     			0    7   3     1    1   
+BCMu10			0    7   3     2    1   
+BCMd1				0    7   3     3    1   
+BCMd3				0    7   3     4    1   
+BCMd10			0    7   3     5    1   
+UNSER				0    7   3     6    1   
+E4NaCp      		0    7   3     7    1   
+SynUg				0    7   3     8    1   
+SynG					0    7   3     9    1   
+LNE					0    7   3     10    1   
+MPS					0    7   3     11    1   
+TS1						0    7   3     12    1   
+PS1						0    7   3     13    1   
+T2(s0_ft/bk)		0    7   3     14    1   
+Clk103.8K			0    7   3     15    1   
+SC/GC/Tg			0    7   3     16    1   
+SC/NoGC/Tg     0    7   3     17    1   
+GC/Tg					0    7   3     18    1   
+SC(T1/Tg)			0    7   3     19    1   
+T1						0    7   3     20    1   
+spared1				0    7   3     21    1   
+spared2				0    7   3     22    1   
+spared3      		0    7   3     23    1   
+PileE1Na			0    7   3     24    1   
+PileE1Wd			0    7   3     25    1   
+PileE2Na			0    7   3     26    1   
+PileE2Wd			0    7   3     27    1   
+PileE3Na			0    7   3     28    1   
+PileE3Wd			0    7   3     29    1   
+PileE4Na			0    7   3     30    1   
+PileE4Wd			0    7   3     31    1 
+
+
+

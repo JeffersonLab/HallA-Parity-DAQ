@@ -1,0 +1,28 @@
+The main contents of this software:
+===================================
+
+       Makefile       -- To compile, type "make"
+
+       etInsertEvent.c  -- code to insert data into ET system
+                         (not used for Compton DAQ at the moment)
+
+       vxWscaler.h    -- header used by TCP/IP client/server
+       scacli.c       -- TCP/IP client, runs on Linux 
+       scaser.c       -- TCP/IP server, runs on VME cpu.
+
+
+The client code scacli.c compiled into executible scread:
+========================================================= 
+    Usage:
+ 
+         scread      -- simple print out of scalers data
+         scread -x   -- hexidecimal printout
+         scread -i   -- insert data into ET system (event type 140)
+           (we'll need to adjust this for Compton if we care to use it)
+         scread -h   -- "help" to show various options.
+
+* new Sept 2009 *
+         scread -p 5  -- print counts on 6th location of buffer (0=1st)
+         scread -p 7 -r  -- print rate on 8th location.
+                        (Rate is normalized to location #CLKCHAN)
+

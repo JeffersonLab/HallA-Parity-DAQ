@@ -1,0 +1,9 @@
+# Beam Energy in MeV
+# First variable = EPICS variable to spy on.
+# 2nd = "lt" or "gt" (arithmetic comparison).  
+#    No other arithmetic supported.
+# 3rd = value to compare to.
+# 4th = index of alarm (do NOT change this)
+# The logic: If EPICS-var.comparison.value then sound alarm.
+
+HALLA:p  lt  1955.0  2

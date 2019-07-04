@@ -1,0 +1,34 @@
+
+  Strip Chart for PVDIS Scalers
+  =============================
+
+  R. Michaels    Jan 2009
+
+  This is still just a template.  Need to flesh it out more.
+
+  The strip chart is a macro to show scalers and ratios of scalers.
+  The data are obtained online directly from VME.
+  You can invoke the strip chart software from the ROOT prompt 
+  as follows
+
+     root
+     .x strip.C("Left") 
+ or
+     .x strip.C("Right")
+
+  and don't forget the dot(.) before the x
+
+  It is required to have the following shared object files
+  which are part of the analyzer package.
+
+     libdc.so
+     libscaler.so
+
+  One also needs the scaler.map file, as usual.
+ 
+     scaler.map
+
+  The macro is contained in these files (header and implementation):
+
+     strip.h
+     strip.C

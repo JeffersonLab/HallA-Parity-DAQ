@@ -1,0 +1,84 @@
+
+
+Voice Alarms for HAPPEX, July 2005, Bob Michaels
+================================================
+
+I. Shift worker instructions:
+
+   To disable the alarms (e.g. because false/annoying)
+
+        ~apar/bin/disable_alarms
+
+   To enable the alarms
+
+         ~apar/bin/enable_alarms
+
+   To respond to alarms.
+
+      SEPTUM TEMPERATURE -- If the septum temperature is "too high"
+      turn off the beam for awhile.  If this problem persists, call
+      the Run Coordinator.  
+
+      SWEEPER CURRENT TOO LOW -- Probably means you don't have the
+      sweeper on, perhaps you forgot or some controls problem left it 
+      off or the IOC is not responding.  Make sure the sweeper is at
+      the nominal current (111 A).  If it is off the septum will overheat.
+
+      COMPTON RATES (electron or photon) -- The Compton DAQ is 
+      overwhelmed with background.  Call the Compton expert or
+      Run Coordinator.  Maybe a good idea to turn off beam.
+
+      COMPTON ROCs -- The Compton DAQ crates are not responding.
+      Probably need to reboot.
+
+      SEPTUM MAGNET CURRENT TOO LOW -- We are supposed to run with
+      nominal set points 10% higher than the P0 set point.  There 
+      should be clear instructions online or on the white board (if
+      you don't know, ask the Run Coordinator).  Remember, the set 
+      points are always DIFFERENT from the readbacks, and at the
+      moment I trap on the set points.
+
+
+II. Other Details for Experts
+
+    You may adjust the limits and, to some extent, the logic
+    by modifying the following files whose syntax is probably 
+    obvious.  The files contain an arithmetic comparison, e.g. 
+    
+           MSEPRUPCOILT  gt  7.67  2
+
+    means "If MSEPRUPCOILT  > 7.67 then sound alarm #2"
+        
+
+          septum.txt
+ 
+          sweeper.txt
+
+          comptonG.txt
+
+          comptonE.txt  
+
+          septumIL.txt and septumIR.txt
+
+          comptonROCS.txt  -- compton DAQ crates
+
+
+III. Super Experts
+
+   The files in this directory:
+
+      bclient.c / bserver.c  TCP/IP client server.
+                             The server runs on dlha12
+
+      bserver.c should be compiled and run on hacweb7 since it's
+              speakers work
+
+      Makefile -- to compile the client/server
+ 
+      enable_alarms, disable_alarms -- see I.
+ 
+      alarm_loop.com -- script that should be running all the time.
+              It "drives" everything, i.e. checks variables, sends alarms.
+      start_alarms  -- cron script run by apar on adaql1, it makes
+              sure alarm_loop.com is running
+      getvar -- utility to get EPICS variables

@@ -1,0 +1,31 @@
+
+
+         xscaler for PVDIS
+        ==================
+
+  R. Michaels,  Sep 30, 2009
+
+  under development
+
+
+  To start type
+
+        ./xscaler Left    
+
+  or
+
+        ./xscaler Right
+
+  The scaler.map file also controls the names of the buttons,
+  which needs some adjustment still.
+
+  I'm normalizing all rates to the 103.8 kHz clock whose location
+  is defined in the scaler.map file.  This means this channel
+  will display 103.8 kHz (by definition).
+
+  A strip tool is available : click on the button of a channel.
+  Note, this does not update except when you click on the
+  button.
+
+  (An updating strip tool exists as well -- I will try to 
+  revive it soon and report here.)

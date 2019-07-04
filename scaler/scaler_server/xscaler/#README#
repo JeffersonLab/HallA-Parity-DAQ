@@ -1,0 +1,73 @@
+
+
+         xscaler and stripcharts for PVDIS
+        ====================================
+
+  R. Michaels,  Oct 7, 2009
+
+  under development -- needs some more work
+
+I. XSCALER
+===========
+
+  To start type
+
+        ./xscaler Left    
+
+  or
+
+        ./xscaler Right
+
+  The scaler.map file also controls the names of the buttons,
+  which needs some adjustment still.
+
+  I'm normalizing all rates to the 103.8 kHz clock whose location
+  is defined in the scaler.map file.  This means this channel
+  will display 103.8 kHz (by definition).
+
+  A strip tool is available : click on the button of a channel.
+  Note, this does not update except when you click on the
+  button.
+
+  (An updating strip tool exists as well -- I will try to 
+
+  revive it soon and report here.)
+
+II. STRIP CHART
+================
+
+  The strip chart is a macro to show scalers and ratios of scalers.
+  The data are obtained online directly from VME.
+  You can invoke the strip chart software from the ROOT prompt 
+  as follows
+
+     root
+
+     .x strip.C("Left") 
+ or
+     .x strip.C("Right")
+
+  and don't forget the dot(.) before the x
+
+
+III.  SCREAD   -- primitve text-based readings
+=============
+
+  For a primitive text-based reading, type
+
+           ./screadL
+  or
+           ./screadR
+
+  These display counts on L-HRS and R-HRS respo.
+
+  To get rates type
+
+           ./screadL -r
+  or
+           ./screadR -r
+
+  Here the rate is (imprecisely) normalized to the 
+  10 sec sleep time between reads.  In contrast, xscaler
+  should be much more accurate on rates.
+

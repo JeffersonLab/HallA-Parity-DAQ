@@ -1,0 +1,126 @@
+# This file: scaler.map
+# Author: Robert Michaels, Jlab
+# Contains time-dependent text-based mapping of Hall A scaler channels
+# which permits getting data from THaScaler by names like "bcm_u3".
+# Also contains "directives" that control xscaler and simplify
+# the map, e.g. tying helicity scaler map to non-helicity scaler 
+# For documentation about this file, see
+# http://hallaweb.jlab.org/equipment/daq/THaScaler.html (scroll to "scaler.map"
+# near the end of that web page).
+#
+# Indices are C style !!  (0 = 1st)
+
+# ---- Sept 24, 2009
+DATE 24 9 2009
+# Version for PVDIS scalers
+
+# directives for Left arm
+
+xscaler-tabs Left 0:scal1 1:scal2 2:scal3 3:scal4 
+xscaler-layout Left 0:8x4 1:8x4 2:8x4 3:8x4 
+xscaler-pageslot Left 0:slot0 1:slot1 2:slot2 3:slot3 
+xscaler-pagename Left 0:'L-Arm   PVDIS   1st scaler'
+xscaler-pagename Left 1:'L-Arm   PVDIS   2nd scaler'
+xscaler-pagename Left 2:'L-Arm   PVDIS   3rd scaler'
+xscaler-pagename Left 3:'L-Arm   PVDIS   4th scaler'
+xscaler-server Left IP:129.57.192.59 port:5026
+xscaler-clock Left slot:1 chan:29 rate:103800
+
+#
+# directives for Right arm
+
+xscaler-tabs Right 0:scal1 1:scal2 2:scal3 3:scal4 
+xscaler-layout Right 0:8x4 1:8x4 2:8x4 3:8x4 
+xscaler-pageslot Right 0:slot0 1:slot1 2:slot2 3:slot3 
+xscaler-pagename Right 0:'R-Arm  PVDIS   1st scaler'
+xscaler-pagename Right 1:'R-Arm  PVDIS   2nd scaler'
+xscaler-pagename Right 2:'R-Arm  PVDIS   3rd scaler'
+xscaler-pagename Right 3:'R-Arm  PVDIS   4th scaler'
+xscaler-server Right IP:129.57.192.58 port:5026
+xscaler-clock Right slot:1 chan:31 rate:103800
+
+
+# ============= LEFT HRS ======================
+# slot0
+# desc  hel crate slot start nchan  long-description
+HiThere   0    8   0     0    1   Put something here
+FixMe     0    8   0     1    1   Yadda yadda
+Whatever  0    8   0     2    1   trigger 3 on Left Arm
+YourMomma 0    8   0     3    1   trigger 4 on Left Arm
+
+# slot 1
+HiThere2  0    8   1     0    1   trigger 1 on Left Arm
+FixMe2    0    8   1     1    1   trigger 2 on Left Arm
+MyName    0    8   1     2    1   trigger 3 on Left Arm
+YourName  0    8   1     3    1   trigger 4 on Left Arm
+clk104k   0    8   1    29    1   103.7 kHz clock
+clk1024   0    8   1    30    1   1024 Hz clock
+
+
+Electron  0    8   2     0    1   trigger 1 on Left Arm
+Pion      0    8   2     1    1   trigger 2 on Left Arm
+Whatever2 0    8   2     2    1   trigger 3 on Left Arm
+YourMom   0    8   2     3    1   trigger 4 on Left Arm
+YourDaddy 0    8   2     4    1   trigger 5 on Left Arm
+trigger-6 0    8   2     5    1   trigger 6 on Left Arm
+trigger-7 0    8   2     6    1   trigger 7 on Left Arm
+clock     0    8   2     7    1   1024 Hz clock (T8)
+trigger-8 0    8   2     7    1   1024 Hz pulser trigger 8
+TS-accept 0    8   2    12    1   Trigger Supervisor accepted triggers 
+bcm_u1    0    8   2    13    1   Beam current, upstream cavity, gain = 1
+bcm_u3    0    8   2    16    1   Beam current, upstream cavity, gain = 3
+bcm_u10   0    8   2     8    1   Beam current, upstream cavity, gain = 10
+bcm_d1    0    8   2    15    1   Beam current, downstream cavity, gain = 1
+bcm_d3    0    8   2    10    1   Beam current, downstream cavity, gain = 3
+bcm_d10   0    8   2    11    1   Beam current, downstream cavity, gain = 10
+strobe    0    8   2    19    1   Strobe for S-ray trigger
+unser     0    8   2    14    1   Unser monitor
+edtm      0    8   2    18    1   Edtm pulser
+
+# slot=3
+# desc  hel crate slot start nchan  long-description
+HAPPEX    0    8   3   6    1    HAPPEX detector
+S0f       0    8   3   16   1    S0 front PMT
+S0b       0    8   3   24   1    S0 back PMT
+
+# ============= RIGHT HRS  (crate "7") ======================
+# Right HRS:
+Fred      0    7   0     0    1   put a discription here
+Joe       0    7   0     1    1   and not what was written before
+Bob1      0    7   0     2    1   trigger 3 on Right Arm
+trigger-4 0    7   0     3    1   trigger 4 on Right Arm
+trigger-5 0    7   0     4    1   trigger 5 on Right Arm
+trigger-6 0    7   0     5    1   trigger 6 on Right Arm
+trigger-7 0    7   0    11    1   trigger 7 on Right Arm
+clock     0    7   0     7    1   1024 Hz clock (T8)
+trigger-8 0    7   0     7    1   1024 Hz trigger 8
+TS-accept 0    7   0    12    1   Trigger Supervisor accepted triggers 
+bcm_u1    0    7   0    13    1   Beam current, upstream cavity, gain = 1
+bcm_u3    0    7   0     6    1   Beam current, upstream cavity, gain = 3
+bcm_u10   0    7   0    14    1   Beam current, upstream cavity, gain = 10
+bcm_d1    0    7   0    15    1   Beam current, downstream cavity, gain = 1
+bcm_d3    0    7   0     9    1   Beam current, downstream cavity, gain = 3
+bcm_d10   0    7   0    10    1   Beam current, downstream cavity, gain = 10
+strobe    0    7   0    29    1   Strobe for S-ray trigger
+edtm      0    7   0    16    1   Edtm pulser
+helicity  0    7   0    17    1   Helicity
+QRT       0    7   0    18    1   QRT
+MPS       0    7   0    19    1   MPS
+unser     0    7   0    22    1   Unser Monitor
+
+# slot 1 (2nd slot) follows
+OhBoy     0    7   1    0     1   Oh boy
+clk104k   0    7   1    31    1   103.7 kHz clock
+
+# slot 2
+something  0    7   2    0    1   description
+else       0    7   2    1    1   story of life
+again      0    7   2    2    1   etc etc
+
+# slot 3
+something  0    7   3    0    1   description
+else       0    7   3    1    1   story of life
+again      0    7   3    2    1   etc etc
+
+
+

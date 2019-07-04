@@ -1,0 +1,93 @@
+
+   Scaler Software
+
+   R. Michaels
+   updated Dec 9, 2015
+
+
+Brief description of the software architecture:
+
+ EPICS variables like Aline_Halo1, Aline_Halo2, etc, are filled
+ by a script that loops forever, invoking a client to obtain scaler
+ data from a VME server.  The VME-based code will read the scaler 
+ directly if CODA is not running, or it will read memory filled by 
+ CODA if CODA is running.  Rates are normalized to a clock plugged 
+ into a specific channel; however, if nothing is plugged into the clock
+ channel the rates are normalized by using the time between readings.
+ Once the data are in EPICS, they can be shared with MCC or put 
+ into stripcharts.  If you reboot the VME computer or adaq2, the 
+ software automaically restarts and EPICS variables should be filled 
+ 24/7 whether CODA is running or not.
+
+-------------------------------------------------
+
+Longer description :
+
+The directories we're using now are
+
+./readout  -- client/server to obtain scaler data
+
+./SISnohel -- library to interact with scaler.  "nohel" means
+              the software does not try to sort by helicity.
+
+./scalepics -- scripts to fill EPICS variables.
+
+First, let me explain how the scaler works.  It is in "3801"
+mode: this means it needs a LNE (load next event) on control input 1,
+which loads the data into the FIFO (first in-first out, it's
+a memory buffer).  The data in each FIFO buffer are the counts
+since the last LNE.  The LNE is the MPS (or Tsettle signal).
+Ideally, the scaler would also be gated by the MPS so that it
+only counts when the ADCs do, but that is not set up yet.
+The gate (actually veto) goes on input 4.  Conceivably, inputs 2 and 3
+could also be used for input bits like helicity or QRT, but
+they are unused at present.  When CODA runs it is flushing
+this FIFO buffer.  If all is well, i.e. no deadtime or loss
+if synch, then each CODA event corresponds to one FIFO buffer.
+
+And now the software: 
+
+The library in SISnohel has been substantially simplifed relative 
+to ./SIS3801.  When the VME crate is booted, the library is 
+loaded and the scaler is initialized.  A process called "SISProd" 
+is launched; its job is to flush data from the scaler FIFO 
+into memory locations which the server can see.  This is a nice
+feature of vxWorks:  memory can be shared between codes.
+Note, the SISProd routine only flushes the FIFO if CODA is not 
+running.  This is because if CODA is running you want the CRL 
+code to flush the data instead.  Consequently, if CODA is running,
+then the CRL must place the scaler data into the same memory, so
+that the server can still obtain it.
+
+The interaction between the server and CODA is handeled by a 
+global variable "rocActivate".  If CODA is running rocActivate=1;
+otherwise it is zero.  "rocActivate" tells SISProd whether or
+not to update the cumulative counts.
+
+A server "scaser" is loaded; it listens on a TCP/IP socket for 
+requests from the client "scread" in ./readout.  The scaler 
+obtains the cumulative counts in each channel since the last time 
+the counts were cleared.  The counts are kept in the VME memory.  
+Each FIFO read adds to the counts. The counts are cleared when 
+one types "./scread -c" on the workstation.
+
+To print the data to the screen, type "./scread" in ./readout.
+There is also a README file there which explains things.
+The "scread" and related scripts run on adaq2, though they 
+probably would run anywhere in the counting house.
+
+Other options for "scread" may be discovered with "./scread -h"
+(h = help).  For the EPICs strip chart we use
+
+  scread -p $1 -r
+
+where $1 is the channel to print.
+See ./readout/scaler.bash -- a frontend script.
+
+The EPICS variables are filled using the code in ./scalepics.
+See the README file there.  This script should be running 24/7
+because it is launched by a cron job which every few minutes
+checks if it is running and restarts it if necessary.
+
+
+

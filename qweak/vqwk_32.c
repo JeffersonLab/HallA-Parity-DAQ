@@ -28,6 +28,9 @@
  */
 #include "universeDma.h"
 
+/* The usrstrutils code will let the user parse a flags file for setting VxWorks config paramters */
+#include "usrstrutils.c"
+
 
 
 /* Define global variables */
@@ -48,7 +51,71 @@ UINT8  kDefaultGateFlg    = 1;          /*  External gate                 */
 UINT8  kDefaultClkFlg     = 0;          /*  Internal clock                */
 UINT16 kDefaultGateFreq   = 3300;       /*  Gate period is 33.00 ms       */
 
+char* FLAGS_FILE_VQWK = "/adaqfs/home/apar/devices/crl/injector/g0inj.flags";
 
+
+   /*  P.King, 2019-02-06:  Load the vqwk settings from a common file,    *
+    *  set the default values, then initialize all modules.                            */
+int withDefaults_setDefaults_VQWK(){
+  int nMissedFlags = 0;
+  printf("Initializing VQWK ADCs default values from flags file %s\n",FLAGS_FILE_VQWK);
+  load_strings_from_file(FLAGS_FILE_VQWK);
+  if (getflag(VQWK_VERBOSE_MODE)==2) {
+    vqwkSetVerboseLevel(getint(VQWK_VERBOSE_MODE));
+  }
+  else {
+    printf("The crate value (%s) requested was not found in the flags file: %s\n",VQWK_VERBOSE_MODE,FLAGS_FILE_VQWK);
+    nMissedFlags = nMissedFlags + 1;
+  }
+  if (getflag(VQWK_SAMPLE_PERIOD)==2) {
+    vqwkSetDefaultSamplePeriod(getint(VQWK_SAMPLE_PERIOD));
+  }
+  else {
+    printf("The crate value (%s) requested was not found in the flags file: %s\n",VQWK_SAMPLE_PERIOD,FLAGS_FILE_VQWK);
+    nMissedFlags = nMissedFlags + 1;
+  }
+  if (getflag(VQWK_NUM_BLOCKS)==2) {
+    vqwkSetDefaultNumberOfBlocks(getint(VQWK_NUM_BLOCKS));
+  }
+  else {
+    printf("The crate value (%s) requested was not found in the flags file: %s\n",VQWK_NUM_BLOCKS,FLAGS_FILE_VQWK);
+    nMissedFlags = nMissedFlags + 1;
+  }
+  if (getflag(VQWK_SAMP_PER_BLOCK)==2) {
+    vqwkSetDefaultSamplesPerBlock(getint(VQWK_SAMP_PER_BLOCK));
+  }
+  else {
+    printf("The crate value (%s) requested was not found in the flags file: %s\n",VQWK_SAMP_PER_BLOCK,FLAGS_FILE_VQWK);
+    nMissedFlags = nMissedFlags + 1;
+  }
+  if (getflag(VQWK_GATE_DELAY)==2) {
+    vqwkSetDefaultGateDelay(getint(VQWK_GATE_DELAY));
+  }
+  else {
+    printf("The crate value (%s) requested was not found in the flags file: %s\n",VQWK_GATE_DELAY,FLAGS_FILE_VQWK);
+    nMissedFlags = nMissedFlags + 1;
+  }
+  if (getflag(VQWK_INT_GATE_FREQ)==2) {
+    vqwkSetDefaultIntGateFreq(getint(VQWK_INT_GATE_FREQ));
+  }
+  else {
+    printf("The crate value (%s) requested was not found in the flags file: %s\n",VQWK_INT_GATE_FREQ,FLAGS_FILE_VQWK);
+    nMissedFlags = nMissedFlags + 1;
+  }
+  if (getflag(VQWK_INTERNAL_MODE)==2) {
+    int gateclkmode = getint(VQWK_INTERNAL_MODE);
+    vqwkSetDefaultGateClockSources((gateclkmode & 2),
+        (gateclkmode & 1));
+  }
+  else {
+    printf("The crate value (%s) requested was not found in the flags file: %s\n",VQWK_INTERNAL_MODE,FLAGS_FILE_VQWK);
+    nMissedFlags = nMissedFlags + 1;
+  }
+  if (nMissedFlags>0) {
+    printf("Error, %d flags missed\n",nMissedFlags);
+  }
+  return 1;
+}
 
 STATUS PrintSysBus(UINT32 addr, UINT32 am_code){
   STATUS statval;

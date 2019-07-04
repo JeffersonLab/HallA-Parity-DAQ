@@ -182,7 +182,7 @@ unsigned int addr_vqwk;
 unsigned int addrinc_vqwk  = 0x010000;
 unsigned int baseaddr_vqwk = 0x840000;
 unsigned int nvqwk = 0;  /* depends on the crate */
-
+char *vqwk_config_file = "/adaqfs/home/apar/devices/crl/injector/g0inj.flags";
 
 begin download
 
@@ -553,7 +553,7 @@ log inform "Entering User Prestart"
 %%
 /* Setupt the VQWK modules */
 /* Caryn commented the vqwk initialzation out and moved it to the boot files*/
-if (counthouse && qweakadc) nvqwk=5;
+if (counthouse && qweakadc) nvqwk=8;
 if (righthrs && qweakadc) nvqwk=2;
 if (lefthrs && qweakadc) nvqwk=1;
 
@@ -571,23 +571,37 @@ if (!qweakadc) READOUT_VQWK=0;
 log inform "Begin setting up the VQWK modules."
 
 if READOUT_VQWK is equal to 1 then
+   log inform "Begin setting up the VQWK modules."
    firstEvents = 2;
    addr_vqwk = baseaddr_vqwk;
-   log inform "Begin setting up the VQWK modules."
    logMsg("Set up %d ADCs beginning with ladd=0x%8x with address steps of 0x%8x",nvqwk,addr_vqwk,addrinc_vqwk,0,0,0);
 %%
+   int id=0;
 
-/* Caryn commented the vqwk initialzation out and moved it to the boot files*/
- 
-  /* int id=0; */
-  /* vqwkInit(addr_vqwk,addrinc_vqwk,nvqwk);    */
-  /*   while(id<nvqwk){   */
-  /*     vqwkSetSamplePeriod(id,VQWK_SAMPLE_PERIOD);   */
-  /*     vqwkSetNumberOfBlocks(id,VQWK_NUM_BLOCKS);   */
-  /*     vqwkSetSamplesPerBlock(id,VQWK_SAMP_PER_BLOCK);   */
-  /*     vqwkSetGateDelay(id,VQWK_GATE_DELAY);   */
-  /*     id++;   */
-  /*   }   */
+   /*  P.King, 2019-02-06:  Load the vqwk settings from a common file,    *
+    *  set the default values, then initialize all modules.                            */
+   load_strings_from_file(vqwk_config_file);
+   if (getflag(VQWK_VERBOSE_MODE)==2){
+      vqwkSetVerboseLevel(getint(VQWK_VERBOSE_MODE));
+   }
+   if (getflag(VQWK_SAMPLE_PERIOD)==2)
+      vqwkSetDefaultSamplePeriod(getint(VQWK_SAMPLE_PERIOD));
+   if (getflag(VQWK_NUM_BLOCKS)==2)
+      vqwkSetDefaultNumberOfBlocks(getint(VQWK_NUM_BLOCKS));
+   if (getflag(VQWK_SAMP_PER_BLOCK)==2)
+      vqwkSetDefaultSamplesPerBlock(getint(VQWK_SAMP_PER_BLOCK));
+   if (getflag(VQWK_GATE_DELAY)==2)
+      vqwkSetDefaultGateDelay(getint(VQWK_GATE_DELAY));
+   if (getflag(VQWK_INT_GATE_FREQ)==2)
+      vqwkSetDefaultIntGateFreq(getint(VQWK_INT_GATE_FREQ));
+   if (getflag(VQWK_INTERNAL_MODE)==2){
+      int gateclkmode = getint(VQWK_INTERNAL_MODE);
+      vqwkSetDefaultGateClockSources((gateclkmode & 2),
+                                     (gateclkmode & 1));
+   }
+   vqwkInit(addr_vqwk,addrinc_vqwk,nvqwk);
+
+   /* Dump VQWK status to a user event */
    rol->dabufp = (long *) 0;
    UEOPEN((unsigned int)(BASE_ROCCONFIG_EVENT+rol->pid),BT_UI4,0);
    if (rol->dabufp){
@@ -601,13 +615,27 @@ if READOUT_VQWK is equal to 1 then
    }
    UECLOSE;
 %%
+
+  log inform "Send a disable signal to the VQWK ADC gates during prestart"
+%%
+  /* Disable the ADC gates by setting a veto signal */
+  firstEvents = 2;
+  set_tir_oport(OPORT_GATESOFF);
+%%
+
+  log inform "Clear the ADCs during prestart"
+
+%%
+  /*  Clear the ADCs.                                        */
+  int id=0;
+  while (id < nvqwk){
+    vqwkClearAllChannels(id);
+    id++;
+  }
+%%
+
    log inform "VQWK ADCs initialized"
 end if
-
-
-
-
-
 
   log inform "User Prestart Executed"
 
@@ -762,34 +790,6 @@ if (autoled){
 
 %%
 
-# VQWK ADC
-
-if READOUT_VQWK is equal to 1 then
-
-  log inform "Clear the ADCs during go"
-
-%%
-  /*  Configure the internal or external gating and clock modes,  *
-   *  then clear the ADCs.                                        */
-  int id=0;
-  int gateclkmode = VQWK_INTERNAL_MODE;
-  int gateflag = (gateclkmode & 2);
-  int clkflag  = (gateclkmode & 1);
-  logMsg("Setting gateflag to %d and clockflag to %d.\n",
-	 gateflag, clkflag,0,0,0,0);
-  while (id < nvqwk){
-    vqwkSetGateClockSources(id,gateflag,clkflag);
-    id++;
-  }
-  
-  id=0;
-  while (id < nvqwk){
-    vqwkClearAllChannels(id);
-    id++;
-  }
-%%
-
-end if
 
 %%
   CDOENABLE(VME,1,0);
@@ -826,6 +826,13 @@ int localBMWfreq;
 int localBMWphase;
 int localBMWperiod;
 int localBMWcycnum;
+int localBMWcoil1;
+int localBMWamp1;
+int localBMWcoil2;
+int localBMWamp2;
+int localBMWmax_period;
+int localBMWffb_pause;
+int localBMW_arm_trig;
 int nscaler;
 int iocTime;
 int i1,i2,i3,i4;
@@ -910,7 +917,11 @@ if(bmwscan==1) {
   //      and we don't want nuthin' to change before we see it
   //1
   //////////////////////////////////////////////////
-  if(bmw_arm_trig || bmw_phase_num==bmw_phase_cnt){
+  if (bmw_arm_trig && !localBMW_arm_trig){
+    bmw_period = 0;
+  }
+  localBMW_arm_trig = bmw_arm_trig;
+  if(localBMW_arm_trig || bmw_phase_num==bmw_phase_cnt){
     bmw_period++;
     bmw_phase=0;
     bmw_phase_cnt=0;
@@ -920,19 +931,19 @@ if(bmwscan==1) {
     bmw_phase_cnt++;    
     bmw_phase++;
   }
-  
-  localBMWobj = bmw_object;
-  localBMWfreq = bmw_freq;
-  localBMWphase = bmw_phase;
+
+  localBMWphase  = bmw_phase;  
   localBMWperiod = bmw_period;
+  localBMWobj    = bmw_object;
+  localBMWfreq   = bmw_freq1;
   localBMWcycnum = bmw_cycle_number;
-  
-  //  record if event was unclean for any portion of pulse
-  pulseclean = bmw_clean_pulse;
-  
-  //  if pulse was at some point unclean, but ended clean, prepare
-  //  next pulse to be seen as clean
-  //  if (!(pulseclean==1) && (bmw_clean==1)) bmw_clean_pulse=1;  
+
+  localBMWcoil1  = bmw_coil1;
+  localBMWamp1   = bmw_amp1;
+  localBMWcoil2  = bmw_coil2;
+  localBMWamp2   = bmw_amp2;
+  localBMWmax_period = bmw_max_period;
+  localBMWffb_pause  = bmw_ffb_pause;
 }
 #endif//FIXME
 
@@ -1135,11 +1146,18 @@ open bank BANK4 of BT_UI4
 if(bmwscan==1) {
   *rol->dabufp++ = 0xfdacf000;  // Header for daqflags
   /* Start with BMW words */
-  /* *rol->dabufp++ = localBMWphase;  //record where we are in a sinewave */
-  /* *rol->dabufp++ = localBMWperiod;  //record where we are in a sinewave */
-  /* *rol->dabufp++ = localBMWobj; //record the last-moved object (from beginning of readout) */
-  /* *rol->dabufp++ = localBMWfreq; // record the value of the last-moved object */
-  /* *rol->dabufp++ = localBMWcycnum; // record the number of this supercycle  */
+   *rol->dabufp++ = localBMWphase;  //record where we are in a sinewave 
+   *rol->dabufp++ = localBMWperiod;  //record where we are in a sinewave 
+   *rol->dabufp++ = localBMWobj; //record the last-moved object (from beginning of readout) 
+  *rol->dabufp++ = localBMWfreq; // record the value of the last-moved object 
+  *rol->dabufp++ = localBMWcycnum; // record the number of this supercycle 
+  // New words
+  *rol->dabufp++ = localBMWcoil1;
+  *rol->dabufp++ = localBMWamp1;
+  *rol->dabufp++ = localBMWcoil2;
+  *rol->dabufp++ = localBMWamp2;
+  *rol->dabufp++ = localBMWmax_period;
+  *rol->dabufp++ = localBMWffb_pause;
 
   /* Scan words next */
   *rol->dabufp++ = getCleanSCAN();
@@ -1216,6 +1234,8 @@ if(getOverSampleCurrentHAPTB()==0) {
  } else {             /* random */
    
   //dac12val = 1602+rand()%2048;
+  dac12val = 1602+rand()%2048;
+  setDACHAPTB(1,dac12val);  
    
  }
  
@@ -1237,6 +1257,7 @@ if(getOverSampleCurrentHAPTB()==0) {
 %%
 
 close bank
+
 # VQWK ADCs
 open bank BANK5 of BT_UI4
 
@@ -1247,14 +1268,17 @@ if READOUT_VQWK is equal to 1 then
 
 %%
  int id = 0;
- if (firstEvents>1){
+  if (firstEvents==0){
+    unset_tir_oport(OPORT_GATESOFF);
+  } else if (firstEvents>1){
    firstEvents--;
- } else if (firstEvents==1){
+  } else if (firstEvents==1){
    logMsg("Reenabling ADC gates at beginning of event %d.",
 	  event_no,0,0,0,0,0);
    unset_tir_oport(OPORT_GATESOFF);
    firstEvents = 0;
- } else {
+  } // else { /*  Don't use this else.  Always try to read the VQWKs, even during the first events */
+if(1==1){
    int readcounter_max = 2;
    int readcounter;
    int clearall = 0;
@@ -1273,7 +1297,10 @@ if READOUT_VQWK is equal to 1 then
    set_tir_oport(OPORT_VQWKREAD);
    clearall = 0; 
    while (id < nvqwk) {
-     if (vqwkProbeDataReady(id)!=0){
+     /*  Read the VQWKs, no matter what.  ---2019jun19, pking.
+      * if (vqwkProbeDataReady(id)!=0){
+      */
+     if (1==1){
        rol->dabufp+=vqwkReadRegisters(id, 0xff, rol->dabufp);
        //      rol->dabufp+=vqwkBlockRead(id, rol->dabufp);
      } else {
@@ -1317,17 +1344,30 @@ end if
  unset_tir_oport(OPORT_BUSY);
  
 /*   added for dithering, 18March10, rupesh  */
-/*
   if(counthouse){
-    if(bmw_arm_trig==1){
-      trigBMW(1);
-      //      flexioWriteMask(1,0x02);
-      bmw_arm_trig=0;
+    if (localBMWffb_pause==1) {
+      //  Turn on the "FFB disable" bit
+      flexioWriteMask(1, 0x08);
+    } else {
+      flexioWriteMask(0, 0x08);
     }
-    else trigBMW(0);
-      //flexioWriteMask(0,0x02);
+    if (localBMW_arm_trig==1) {
+      //  Turn on the trigger and "modulation active" bits
+      flexioWriteMask(1, 0x02+0x04);
+      localBMW_arm_trig = 0;
+      bmw_arm_trig=0;
+    } else {
+      flexioWriteMask(0, 0x02);
+    }
+    if (localBMWperiod == localBMWmax_period){
+      //  Turn off the "modulaiton active" bit
+      flexioWriteMask(0, 0x04);
+      bmw_phase_cnt = -1;
+      bmw_phase     =  0;
+      bmw_period    =  0;
+      bmw_object    = -1;
+    }
   }
-*/
 
 
 %%

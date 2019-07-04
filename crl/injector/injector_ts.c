@@ -654,7 +654,7 @@ int toggle_tir_oport(int mask){
   tir[1]->tir_oport = tir_oport_state;
   return tir_oport_state;
 };
-/* # 31 "injector_ts.c" 2 */
+/* # 38 "injector_ts.c" 2 */
 /* # 1 "g0inj.h" 1 */
 /* # 1 "usrstrutils.c" 1 */
 char *internal_configusrstr=0;
@@ -839,7 +839,7 @@ extern int getDataScan(int);
 extern int getCleanScan();
 extern int setDataScan(int,int);
 extern int setCleanScan(int);
-/* # 32 "injector_ts.c" 2 */
+/* # 39 "injector_ts.c" 2 */
 int VQWK_DATA_READY_TIME = 30;
 unsigned long laddr;
 extern int bigendian_out;
@@ -921,7 +921,7 @@ daLogMsg("INFO","Initializing %d scalers starting at addr_beam
     daLogMsg("INFO","Beam scalers initialized and cleared");
 } 
 { 
-  nvqwk = 11;
+ nvqwk = 12;
   if (nvqwk==0){
     READOUT_VQWK = 0;
   } else {
@@ -1211,9 +1211,10 @@ unsigned long i, value, ichan;
 )->c) { ( &( rol->pool ->list) )->l = 0; }} ;} ; if(__the_event__ == (DANODE *) 0) { logMsg ("TRIG ERROR: no pool buffer 
 available\n"); return; } rol->dabufp = (long *) &__the_event__->length; if (input_event__) { 
 __the_event__->nevent = input_event__->nevent; } else { __the_event__->nevent = *(rol->nevents); } } } ; 
-StartOfEvent[event_depth__++] = (rol->dabufp); if(input_event__) {	*(++(rol->dabufp)) = (( EVTYPE ) << 16) | (( 0x01 ) << 8) | 
+StartOfEvent[event_depth__++] = (rol->dabufp); if(input_event__) {	*(++(rol->dabufp)) = (( EVTYPE ) << 16) | (( 0x10 ) << 8) | 
 (0xff & (input_event__->nevent));	} else {	*(++(rol->dabufp)) = (syncFlag<<24) | (( EVTYPE ) << 16) 
-| (( 0x01 ) << 8) | (0xff & *(rol->nevents));	}	((rol->dabufp))++;} ;   *rol->dabufp++ = 0xffb0b444;
+| (( 0x10 ) << 8) | (0xff & *(rol->nevents));	}	((rol->dabufp))++;} ; {	long *StartOfBank; StartOfBank = (rol->dabufp); *(++(rol->dabufp)) = ((( 0x01 ) << 16) | ( 
+0x01 ) << 8) | ( 0 );	((rol->dabufp))++; ;   *rol->dabufp++ = 0xffb0b444;
 if(( READOUT_BEAM_SCALERS == 1) ) {
       *rol->dabufp++ = 0x3101 ;
 { 
@@ -1240,7 +1241,11 @@ if(( READOUT_BEAM_SCALERS == 1) ) {
         }
  } 
 } 
-if(( READOUT_VQWK == 1) ) {
+*StartOfBank = (long) (((char *) (rol->dabufp)) - ((char *) StartOfBank));	if ((*StartOfBank 
+& 1) != 0) { (rol->dabufp) = ((long *)((char *) (rol->dabufp))+1); *StartOfBank += 1; }; if 
+((*StartOfBank & 2) !=0) { *StartOfBank = *StartOfBank + 2; (rol->dabufp) = ((long *)((short *) 
+(rol->dabufp))+1);; };	*StartOfBank = ( (*StartOfBank) >> 2) - 1;}; ; {	long *StartOfBank; StartOfBank = (rol->dabufp); *(++(rol->dabufp)) = ((( 0x02 ) << 16) | ( 
+0x01 ) << 8) | ( 0 );	((rol->dabufp))++; ; if(( READOUT_VQWK == 1) ) {
       *rol->dabufp++ = 0xff902902 ;
 { 
         id=0;
@@ -1315,7 +1320,11 @@ if(( READOUT_VQWK == 1) ) {
         rol->dabufp += 2;
  } 
 } 
-    *rol->dabufp++ = 0x3103 ;
+*StartOfBank = (long) (((char *) (rol->dabufp)) - ((char *) StartOfBank));	if ((*StartOfBank 
+& 1) != 0) { (rol->dabufp) = ((long *)((char *) (rol->dabufp))+1); *StartOfBank += 1; }; if 
+((*StartOfBank & 2) !=0) { *StartOfBank = *StartOfBank + 2; (rol->dabufp) = ((long *)((short *) 
+(rol->dabufp))+1);; };	*StartOfBank = ( (*StartOfBank) >> 2) - 1;}; ; {	long *StartOfBank; StartOfBank = (rol->dabufp); *(++(rol->dabufp)) = ((( 0x03 ) << 16) | ( 
+0x01 ) << 8) | ( 0 );	((rol->dabufp))++; ;     *rol->dabufp++ = 0x3103 ;
 { 
       int id=0;
       UINT32 qrtbit = (input_reg & 0x4);
@@ -1338,7 +1347,25 @@ if(( READOUT_VQWK == 1) ) {
         id++;
       }
  } 
-{event_depth__--; *StartOfEvent[event_depth__] = (long) (((char *) (rol->dabufp)) - ((char 
+*StartOfBank = (long) (((char *) (rol->dabufp)) - ((char *) StartOfBank));	if ((*StartOfBank 
+& 1) != 0) { (rol->dabufp) = ((long *)((char *) (rol->dabufp))+1); *StartOfBank += 1; }; if 
+((*StartOfBank & 2) !=0) { *StartOfBank = *StartOfBank + 2; (rol->dabufp) = ((long *)((short *) 
+(rol->dabufp))+1);; };	*StartOfBank = ( (*StartOfBank) >> 2) - 1;}; ; {	long *StartOfBank; StartOfBank = (rol->dabufp); *(++(rol->dabufp)) = ((( 0x04 ) << 16) | ( 
+0x01 ) << 8) | ( 0 );	((rol->dabufp))++; ; { 
+  *rol->dabufp++ = 0xfffbd000;     
+  *rol->dabufp++ = getDataHAPTB();
+  *rol->dabufp++ = getRampDelayHAPTB();
+  *rol->dabufp++ = getIntTimeHAPTB();
+  *rol->dabufp++ = (getOverSampleCurrentHAPTB() << 8) + getOverSampleHAPTB();
+  *rol->dabufp++ = getDACHAPTB(2);  
+  *rol->dabufp++ = getDACHAPTB(1);  
+  *rol->dabufp++ = 0;
+  *rol->dabufp++ = 0;
+ } 
+*StartOfBank = (long) (((char *) (rol->dabufp)) - ((char *) StartOfBank));	if ((*StartOfBank 
+& 1) != 0) { (rol->dabufp) = ((long *)((char *) (rol->dabufp))+1); *StartOfBank += 1; }; if 
+((*StartOfBank & 2) !=0) { *StartOfBank = *StartOfBank + 2; (rol->dabufp) = ((long *)((short *) 
+(rol->dabufp))+1);; };	*StartOfBank = ( (*StartOfBank) >> 2) - 1;}; ; {event_depth__--; *StartOfEvent[event_depth__] = (long) (((char *) (rol->dabufp)) - ((char 
 *) StartOfEvent[event_depth__]));	if ((*StartOfEvent[event_depth__] & 1) != 0) { 
 (rol->dabufp) = ((long *)((char *) (rol->dabufp))+1); *StartOfEvent[event_depth__] += 1; }; if 
 ((*StartOfEvent[event_depth__] & 2) !=0) { *StartOfEvent[event_depth__] = *StartOfEvent[event_depth__] + 2; (rol->dabufp) = 

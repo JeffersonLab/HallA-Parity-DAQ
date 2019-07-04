@@ -308,7 +308,7 @@ void Prex_ts__init (rolp)
 	  printf("Init - Initializing new rol structures for %s\n",rol_name__);
 	  strcpy(name, rolp->listName);
 	  strcat(name, ":pool");
-	  rolp->pool  = partCreate(name, 8192  , 20000 ,1);
+	  rolp->pool  = partCreate(name, 8192  , 2000 ,1);
 	  if (rolp->pool == 0) {
 	    rolp->inited = -1;
 	    break;
@@ -791,7 +791,7 @@ struct caen_v560_scaler {
   volatile unsigned short ModTypeR ;  
   volatile unsigned short VersionR ;  
 };
-/* # 28 "Prex_ts.c" 2 */
+/* # 35 "Prex_ts.c" 2 */
 /* # 1 "usrstrutils.c" 1 */
 char *internal_configusrstr=0;
 char *file_configusrstr=0;
@@ -913,7 +913,53 @@ void init_strings()
     free(ffile_name);
   }
 }
-/* # 29 "Prex_ts.c" 2 */
+void load_strings_from_file(char *input_name)
+{
+  char *ffile_name;
+  int fd;
+  char s[256], *flag_line;
+  if(!internal_configusrstr) {	 
+    internal_configusrstr = (char *) malloc(strlen("" )+1);
+    strcpy(internal_configusrstr,"" );
+  }
+  ffile_name = (char *) malloc(strlen(input_name)+1);
+  strcpy(ffile_name,input_name);
+  fd = fopen(ffile_name,"r");
+  if(!fd) {
+    printf("Failed to open usr flag file %s\n",ffile_name); 
+    free(ffile_name);
+    if(file_configusrstr) free(file_configusrstr);  
+    file_configusrstr = (char *) malloc(1);
+    file_configusrstr[0] = '\0';
+  } else {
+    flag_line = 0;
+    while(fgets(s,255,fd)){
+      char *arg;
+      arg = strchr(s,';' );
+      if(arg) *arg = '\0';  
+      arg = s;			 
+      while(*arg && isspace(*arg)){
+	arg++;
+      }
+      if(*arg) {
+	flag_line = arg;
+	break;
+      }
+    }
+    if(file_configusrstr) free(file_configusrstr);  
+    if(flag_line) {		 
+      file_configusrstr = (char *) malloc(strlen(flag_line)+1);
+      strcpy(file_configusrstr,flag_line);
+    } else {
+      file_configusrstr = (char *) malloc(1);
+      file_configusrstr[0] = '\0';
+    }
+    fclose(fd);
+    free(ffile_name);
+  }
+  daLogMsg("Run time Config: %s\n",file_configusrstr); 
+}
+/* # 36 "Prex_ts.c" 2 */
 /* # 1 "tir_oport_utils.c" 1 */
 int tir_oport_state;    
 int clear_tir_oport(){
@@ -941,7 +987,7 @@ int toggle_tir_oport(int mask){
   tir[1]->tir_oport = tir_oport_state;
   return tir_oport_state;
 };
-/* # 30 "Prex_ts.c" 2 */
+/* # 37 "Prex_ts.c" 2 */
 /* # 1 "/adaqfs/home/apar/scaler/SISnohel/SIS.h" 1 */
 struct SISbuffer{
   long numread;
@@ -956,12 +1002,12 @@ struct SISring{
   long data[6 ];
 };
 int ring_map[6 ];   
-/* # 31 "Prex_ts.c" 2 */
+/* # 38 "Prex_ts.c" 2 */
 static int BAD18DATA = -999;
 static int conv_gain[25 ],int_gain[25 ];
 int oport_state=0;
 static int noscaler, scaler2, bmwscan, tbreadout, evtypefix, flexio, flexio2;
-static int qweakadc, adc18bit, numadc18, adc16bit, mtread, rampdac12;
+static int qweakadc, adc18bit, numadc18, rampdac12;
 static int autoled, lefthrs, righthrs, counthouse;
 unsigned short ranny[2000000 ];
 extern int bigendian_out;
@@ -975,6 +1021,7 @@ unsigned int addr_vqwk;
 unsigned int addrinc_vqwk  = 0x010000;
 unsigned int baseaddr_vqwk = 0x840000;
 unsigned int nvqwk = 0;
+char *vqwk_config_file = "/adaqfs/home/apar/devices/crl/injector/g0inj.flags";
 static void __download()
 {
     daLogMsg("INFO","Readout list compiled %s", DAYTIME);
@@ -995,7 +1042,7 @@ unsigned long iadc;
   }
 init_strings();
 noscaler=0;scaler2=0;bmwscan=0;tbreadout=0;evtypefix=0;flexio=0,flexio2=0;
-qweakadc=0; adc18bit=0;adc16bit=0;mtread=0;rampdac12=0; autoled=0; 
+qweakadc=0; adc18bit=0;rampdac12=0; autoled=0; 
 lefthrs=0; righthrs=0;
 counthouse=0;
 noscaler  = getflag("noscaler" );    
@@ -1007,8 +1054,6 @@ flexio    = getflag("flexio" );
 flexio2   = getflag("flexio2" );     
 qweakadc  = getflag("qweakadc" );    
 adc18bit  = getflag("adc18bit" );    
-adc16bit  = getflag("adc16bit" );    
-mtread    = getflag("mtread" );      
 rampdac12 = getflag("rampdac12" );   
 autoled   = getflag("autoled" );     
 lefthrs   = getflag("lefthrs" );     
@@ -1029,9 +1074,6 @@ if (qweakadc) {
 }
 if (adc18bit) {
   printf("Will use 18-bit ADC \n");
-} 
-if (adc16bit) {
-  printf("Will use 16-bit ADC \n");
 } 
 if(noscaler == 0) {
   printf("WILL readout scaler: %d\n",noscaler);
@@ -1098,9 +1140,6 @@ if(flexio2 == 1) {
   flex_io->csr2 = 0x8000;  
   flex_io->csr2 = 0x3;     
 }
-  if (adc16bit) {
-    showHAPADC(-1);
-  }
 if(noscaler == 0) {
   res = sysBusToLocalAdrs(0x39,0xa40000 ,&laddr);
   if (res != 0) {
@@ -1140,7 +1179,7 @@ if(noscaler == 0) {
     pscaler[1]->csr=0x10000;      
     pscaler[1]->csr=0x40000;      
   }
-/* # 319 "Prex_ts.c" */
+/* # 317 "Prex_ts.c" */
 }
 srand(9421);        
  tir[1]->tir_csr = 0x80;
@@ -1177,27 +1216,6 @@ trigRtns[trigId] = (FUNCPTR) ( partrig ) ; Tcode[trigId] = ( 1 ) ; ttypeRtns[tri
   extern void srand();
   extern int rand();
   CODA_RUN_IN_PROGRESS = 0;
-if (adc16bit) {
-  printf("Generating Random Integer Array\n");
-  printf("Number of Array elements = %d\n",2000000 );
-  srand(ncnt);   
-  bad_randmake=0;
-  for (j=0;j< 2000000 ;j++) {
-    tmp_rand = (unsigned short) (61440.0*rand()/(32768+1.0));
-    while(tmp_rand==0 || tmp_rand==-1) {
-      bad_randmake=1;
-      tmp_rand = (unsigned short) (61440.0*rand()/(32768+1.0));
-    }
-    ranny[j] = 2048 + tmp_rand;
-  }
-  if(bad_randmake==1) {
-    int badfile;
-    badfile=fopen("~apar/bryan/badrand/badrand.hist","a");
-    fprintf(badfile,"Another bad random number generation at ncnt=%d\n",
-	  ncnt);
-    fclose(badfile);
-  }
-}
   if(tbreadout==1) {
     fdbfile=fopen("~apar/db/timebrd/timebrd.cfg","w");
 fprintf(fdbfile,"# Timing board information:\n# Integrate Time = %.2f ms, Ramp Delay = %.2f us\n\ \ \ \ oversamp %d 
@@ -1243,7 +1261,7 @@ fprintf(fdbfile,"# Timing board information:\n# Integrate Time = %.2f ms, Ramp D
   tir[1]->tir_oport=oport_state;
  } 
 { 
-if (counthouse && qweakadc) nvqwk=5;
+if (counthouse && qweakadc) nvqwk=8;
 if (righthrs && qweakadc) nvqwk=2;
 if (lefthrs && qweakadc) nvqwk=1;
 printf("Lefthrs %d qweakadc %d Number of Qweak ADCs %d\n",lefthrs,qweakadc,nvqwk); if (nvqwk==0){
@@ -1255,11 +1273,32 @@ if (!qweakadc) READOUT_VQWK=0;
  } 
     daLogMsg("INFO","Begin setting up the VQWK modules.");
 if(( READOUT_VQWK == 1) ) {
+    daLogMsg("INFO","Begin setting up the VQWK modules.");
    firstEvents = 2;
    addr_vqwk = baseaddr_vqwk;
-    daLogMsg("INFO","Begin setting up the VQWK modules.");
 logMsg("Set up %d ADCs beginning with ladd=0x%8x with address steps of 
 0x%8x",nvqwk,addr_vqwk,addrinc_vqwk,0,0,0); { 
+   int id=0;
+   load_strings_from_file(vqwk_config_file);
+   if (getflag("vqwk_verbose" )==2){
+      vqwkSetVerboseLevel(getint("vqwk_verbose" ));
+   }
+   if (getflag("vqwkperiod" )==2)
+      vqwkSetDefaultSamplePeriod(getint("vqwkperiod" ));
+   if (getflag("vqwkblocks" )==2)
+      vqwkSetDefaultNumberOfBlocks(getint("vqwkblocks" ));
+   if (getflag("vqwksamples" )==2)
+      vqwkSetDefaultSamplesPerBlock(getint("vqwksamples" ));
+   if (getflag("vqwkdelay" )==2)
+      vqwkSetDefaultGateDelay(getint("vqwkdelay" ));
+   if (getflag("vqwkgatefreq" )==2)
+      vqwkSetDefaultIntGateFreq(getint("vqwkgatefreq" ));
+   if (getflag("vqwkinternal" )==2){
+      int gateclkmode = getint("vqwkinternal" );
+      vqwkSetDefaultGateClockSources((gateclkmode & 2),
+                                     (gateclkmode & 1));
+   }
+   vqwkInit(addr_vqwk,addrinc_vqwk,nvqwk);
    rol->dabufp = (long *) 0;
 {	{if(__user_event__ == (DANODE *) 0) { {{ ( __user_event__ ) = 0; if (( &( rol->pool ->list) 
 )->c){ ( &( rol->pool ->list) )->c--; ( __user_event__ ) = ( &( rol->pool ->list) )->f; ( &( rol->pool 
@@ -1293,6 +1332,18 @@ __user_event__ )->n = 0;( & __user_event__ ->part->list )->c++;	if(( & __user_ev
 )->add_cmd != ((void *) 0) ) (*(( & __user_event__ ->part->list )->add_cmd)) (( & __user_event__ 
 ->part->list )); } ; } if( __user_event__ ->part->free_cmd != ((void *) 0) ) { (*( __user_event__ 
 ->part->free_cmd)) ( __user_event__ ->part->clientData); } } ;	} __user_event__ = (DANODE *) 0; }; ;  } 
+daLogMsg("INFO","Send a disable signal to the VQWK ADC gates during prestart"); { 
+  firstEvents = 2;
+  set_tir_oport(0x40 );
+ } 
+    daLogMsg("INFO","Clear the ADCs during prestart");
+{ 
+  int id=0;
+  while (id < nvqwk){
+    vqwkClearAllChannels(id);
+    id++;
+  }
+ } 
     daLogMsg("INFO","VQWK ADCs initialized");
 } 
     daLogMsg("INFO","User Prestart Executed");
@@ -1456,26 +1507,6 @@ if (adc18bit) for (iadc = 0; iadc<numadc18; iadc++) {
 }
 set_tir_oport(0x04 );
  } 
-if(( READOUT_VQWK == 1) ) {
-    daLogMsg("INFO","Clear the ADCs during go");
-{ 
-  int id=0;
-  int gateclkmode = 2 ;
-  int gateflag = (gateclkmode & 2);
-  int clkflag  = (gateclkmode & 1);
-  logMsg("Setting gateflag to %d and clockflag to %d.\n",
-	 gateflag, clkflag,0,0,0,0);
-  while (id < nvqwk){
-    vqwkSetGateClockSources(id,gateflag,clkflag);
-    id++;
-  }
-  id=0;
-  while (id < nvqwk){
-    vqwkClearAllChannels(id);
-    id++;
-  }
- } 
-} 
 { 
    vmetenable(  1  ,  0  );  ;
   CODA_RUN_IN_PROGRESS = 1;
@@ -1566,11 +1597,11 @@ rol->dabufp = (long *)0;
 )->c) { ( &( rol->pool ->list) )->l = 0; }} ;} ; if(__the_event__ == (DANODE *) 0) { logMsg ("TRIG ERROR: no pool buffer 
 available\n"); return; } rol->dabufp = (long *) &__the_event__->length; if (input_event__) { 
 __the_event__->nevent = input_event__->nevent; } else { __the_event__->nevent = *(rol->nevents); } } } ; 
-StartOfEvent[event_depth__++] = (rol->dabufp); if(input_event__) {	*(++(rol->dabufp)) = (( EVTYPE ) << 16) | (( 0x01 ) << 8) | 
+StartOfEvent[event_depth__++] = (rol->dabufp); if(input_event__) {	*(++(rol->dabufp)) = (( EVTYPE ) << 16) | (( 0x10 ) << 8) | 
 (0xff & (input_event__->nevent));	} else {	*(++(rol->dabufp)) = (syncFlag<<24) | (( EVTYPE ) << 16) 
-| (( 0x01 ) << 8) | (0xff & *(rol->nevents));	}	((rol->dabufp))++;} ; *rol->dabufp++ = 0xffb0b444;
+| (( 0x10 ) << 8) | (0xff & *(rol->nevents));	}	((rol->dabufp))++;} ; {	long *StartOfBank; StartOfBank = (rol->dabufp); *(++(rol->dabufp)) = ((( 0x01 ) << 16) | ( 
+0x01 ) << 8) | ( 0 );	((rol->dabufp))++; ; *rol->dabufp++ = 0xffb0b444;
 { 
-if ( !mtread )  {
 ncnt++;
 *rol->dabufp++ = 0xffdaf000;     
 if(flexio==1) {
@@ -1587,7 +1618,13 @@ if(flexio==1) {
   tirdata = tir[1]->tir_iport;
   *rol->dabufp++ = tirdata & 0xfff;
 }
-/* # 889 "Prex_ts.c" */
+ } 
+*StartOfBank = (long) (((char *) (rol->dabufp)) - ((char *) StartOfBank));	if ((*StartOfBank 
+& 1) != 0) { (rol->dabufp) = ((long *)((char *) (rol->dabufp))+1); *StartOfBank += 1; }; if 
+((*StartOfBank & 2) !=0) { *StartOfBank = *StartOfBank + 2; (rol->dabufp) = ((long *)((short *) 
+(rol->dabufp))+1);; };	*StartOfBank = ( (*StartOfBank) >> 2) - 1;}; ; {	long *StartOfBank; StartOfBank = (rol->dabufp); *(++(rol->dabufp)) = ((( 0x02 ) << 16) | ( 
+0x01 ) << 8) | ( 0 );	((rol->dabufp))++; ; { 
+/* # 873 "Prex_ts.c" */
 set_tir_oport(0x02 );
 if(noscaler == 0) {
   if(scaler2==1) {
@@ -1620,10 +1657,16 @@ if(noscaler == 0) {
       if (i==0) SIS1.data[j] += sdata[i*32+j]; 
     }
   }
-/* # 948 "Prex_ts.c" */
-/* # 957 "Prex_ts.c" */
+/* # 932 "Prex_ts.c" */
+/* # 941 "Prex_ts.c" */
  }
  unset_tir_oport(0x02 );
+ } 
+*StartOfBank = (long) (((char *) (rol->dabufp)) - ((char *) StartOfBank));	if ((*StartOfBank 
+& 1) != 0) { (rol->dabufp) = ((long *)((char *) (rol->dabufp))+1); *StartOfBank += 1; }; if 
+((*StartOfBank & 2) !=0) { *StartOfBank = *StartOfBank + 2; (rol->dabufp) = ((long *)((short *) 
+(rol->dabufp))+1);; };	*StartOfBank = ( (*StartOfBank) >> 2) - 1;}; ; {	long *StartOfBank; StartOfBank = (rol->dabufp); *(++(rol->dabufp)) = ((( 0x03 ) << 16) | ( 
+0x01 ) << 8) | ( 0 );	((rol->dabufp))++; ; { 
  if (adc18bit) {   
    set_tir_oport(0x01 );
    *rol->dabufp++ = 0xfadc1800+numadc18;
@@ -1685,10 +1728,12 @@ cont1:
    }             
    unset_tir_oport(0x01 );
  }   
- if (adc16bit) {
-   *rol->dabufp++ = 0xffadc000 + ADC_NUMSLOTS;      
-   for (i=0; i < ADC_NUMSLOTS; i++) rol->dabufp = readoutHAPADC(rol->dabufp,i);
- }
+ } 
+*StartOfBank = (long) (((char *) (rol->dabufp)) - ((char *) StartOfBank));	if ((*StartOfBank 
+& 1) != 0) { (rol->dabufp) = ((long *)((char *) (rol->dabufp))+1); *StartOfBank += 1; }; if 
+((*StartOfBank & 2) !=0) { *StartOfBank = *StartOfBank + 2; (rol->dabufp) = ((long *)((short *) 
+(rol->dabufp))+1);; };	*StartOfBank = ( (*StartOfBank) >> 2) - 1;}; ; {	long *StartOfBank; StartOfBank = (rol->dabufp); *(++(rol->dabufp)) = ((( 0x04 ) << 16) | ( 
+0x01 ) << 8) | ( 0 );	((rol->dabufp))++; ; { 
 *rol->dabufp++ = 0xfffbd000;     
 *rol->dabufp++ = getDataHAPTB();
 *rol->dabufp++ = getRampDelayHAPTB();
@@ -1698,22 +1743,17 @@ cont1:
 *rol->dabufp++ = getDACHAPTB(1);  
 if(bmwscan==1) {
   *rol->dabufp++ = 0xfdacf000;   
+   *rol->dabufp++ = localBMWphase;   
+   *rol->dabufp++ = localBMWperiod;   
+   *rol->dabufp++ = localBMWobj;  
+  *rol->dabufp++ = localBMWfreq;  
+  *rol->dabufp++ = localBMWcycnum;  
   *rol->dabufp++ = getCleanSCAN();
   *rol->dabufp++ = getDataSCAN(1);  
   *rol->dabufp++ = getDataSCAN(2);  
   *rol->dabufp++ = iocTime;
   *rol->dabufp++ = ncnt;
 }
-if (adc16bit) {
-  for (i = 0; i < ADC_NUMSLOTS; i++) {  
-    if (usesDACHAPADC(i)==1) {
-    rannum = ranny[rannyint];    
-    rannyint++;
-    if (rannyint> 2000000 -1) rannyint=0;
-    setDACHAPADC(i,rannum);
-  }
- }
-}   
 if(getOverSampleCurrentHAPTB()==0) {
   dac16val = dac16val + 5; 
 } 
@@ -1722,6 +1762,8 @@ if(getOverSampleCurrentHAPTB()==0) {
    if (dac12val >= 8000 ) dac12val = 500 ;
    setDACHAPTB(1,dac12val);  
  } else {              
+  dac12val = 1602+rand()%2048;
+  setDACHAPTB(1,dac12val);  
  }
   if (0 ) {
     dac16val+=10;
@@ -1729,18 +1771,25 @@ if(getOverSampleCurrentHAPTB()==0) {
     setDACHAPTB(2,dac16val);
   }
  } 
-if(( READOUT_VQWK == 1) ) {
+*StartOfBank = (long) (((char *) (rol->dabufp)) - ((char *) StartOfBank));	if ((*StartOfBank 
+& 1) != 0) { (rol->dabufp) = ((long *)((char *) (rol->dabufp))+1); *StartOfBank += 1; }; if 
+((*StartOfBank & 2) !=0) { *StartOfBank = *StartOfBank + 2; (rol->dabufp) = ((long *)((short *) 
+(rol->dabufp))+1);; };	*StartOfBank = ( (*StartOfBank) >> 2) - 1;}; ; {	long *StartOfBank; StartOfBank = (rol->dabufp); *(++(rol->dabufp)) = ((( 0x05 ) << 16) | ( 
+0x01 ) << 8) | ( 0 );	((rol->dabufp))++; ; if(( READOUT_VQWK == 1) ) {
 *rol->dabufp++ = 0xff902902 ;
 { 
-int id = 0;
- if (firstEvents>1){
+ int id = 0;
+  if (firstEvents==0){
+    unset_tir_oport(0x40 );
+  } else if (firstEvents>1){
    firstEvents--;
- } else if (firstEvents==1){
+  } else if (firstEvents==1){
    logMsg("Reenabling ADC gates at beginning of event %d.",
 	  event_no,0,0,0,0,0);
    unset_tir_oport(0x40 );
    firstEvents = 0;
- } else {
+  }  
+if(1==1){
    int readcounter_max = 2;
    int readcounter;
    int clearall = 0;
@@ -1792,9 +1841,11 @@ int id = 0;
 } 
 { 
  unset_tir_oport(0x80 );
-}   
  } 
-{event_depth__--; *StartOfEvent[event_depth__] = (long) (((char *) (rol->dabufp)) - ((char 
+*StartOfBank = (long) (((char *) (rol->dabufp)) - ((char *) StartOfBank));	if ((*StartOfBank 
+& 1) != 0) { (rol->dabufp) = ((long *)((char *) (rol->dabufp))+1); *StartOfBank += 1; }; if 
+((*StartOfBank & 2) !=0) { *StartOfBank = *StartOfBank + 2; (rol->dabufp) = ((long *)((short *) 
+(rol->dabufp))+1);; };	*StartOfBank = ( (*StartOfBank) >> 2) - 1;}; ; {event_depth__--; *StartOfEvent[event_depth__] = (long) (((char *) (rol->dabufp)) - ((char 
 *) StartOfEvent[event_depth__]));	if ((*StartOfEvent[event_depth__] & 1) != 0) { 
 (rol->dabufp) = ((long *)((char *) (rol->dabufp))+1); *StartOfEvent[event_depth__] += 1; }; if 
 ((*StartOfEvent[event_depth__] & 2) !=0) { *StartOfEvent[event_depth__] = *StartOfEvent[event_depth__] + 2; (rol->dabufp) = 
